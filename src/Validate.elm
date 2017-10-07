@@ -52,6 +52,10 @@ have to run validations on your model:
                     |> equals password "both passwords have to match up"
         }
 
+How you present the possible validation errors to the user is completely
+up to you. You can use `error` to extract all errors of a value if there
+are any.
+
 In this example, the parameters we actually need to submit will be
 
     type alias SignUpParams =
