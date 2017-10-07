@@ -8,7 +8,7 @@ import Http
 import Json.Decode as Decode exposing (Decoder)
 import Json.Encode as Encode
 import Set exposing (Set)
-import Validate exposing (..)
+import Validate
 
 
 main =
@@ -25,21 +25,25 @@ main =
 
 
 type alias Model =
-    { username : Validatable String String
-    , nickname : Validatable (Maybe String) String
-    , email : Validatable String String
-    , password : Validatable String String
-    , passwordCopy : Validatable String String
+    { username : Validatable String
+    , nickname : Validatable (Maybe String)
+    , email : Validatable String
+    , password : Validatable String
+    , passwordCopy : Validatable String
     }
+
+
+type alias Validatable a =
+    Validate.Validatable a String
 
 
 init : ( Model, Cmd msg )
 init =
-    ( { username = empty
-      , nickname = valid Nothing
-      , email = empty
-      , password = empty
-      , passwordCopy = empty
+    ( { username = Validate.empty
+      , nickname = Validate.valid Nothing
+      , email = Validate.empty
+      , password = Validate.empty
+      , passwordCopy = Validate.empty
       }
     , Cmd.none
     )
@@ -50,31 +54,32 @@ validateModel model =
     let
         password =
             model.password
-                |> isNotEmpty "you must provide a password"
-                |> atLeast 6 "the password must contain at least 6 characters"
+                |> Validate.isNotEmpty "you must provide a password"
+                |> Validate.atLeast 6 "the password must contain at least 6 characters"
 
         username =
             model.username
-                |> isNotEmpty "username must not be empty"
-                |> consistsOfLetters "username must consist of letters only"
+                |> Validate.isNotEmpty "username must not be empty"
+                |> Validate.consistsOfLetters "username must consist of letters only"
     in
     ( { model
         | username =
             username
         , nickname =
             model.nickname
-                |> maybe (consistsOfLetters "nickname must consist of letters only")
+                |> Validate.maybe
+                    (Validate.consistsOfLetters "nickname must consist of letters only")
         , email =
             model.email
-                |> isNotEmpty "email must not be empty"
-                |> isEmail "this is not a valid email address"
+                |> Validate.isNotEmpty "email must not be empty"
+                |> Validate.isEmail "this is not a valid email address"
         , password =
             password
         , passwordCopy =
             model.passwordCopy
-                |> equals password "both passwords have to match up"
+                |> Validate.equals password "both passwords have to match up"
       }
-    , case username |> validValue of
+    , case username |> Validate.validValue of
         Nothing ->
             Cmd.none
 
@@ -102,6 +107,10 @@ decodeValidationErrors =
         |> Decode.map Set.fromList
 
 
+
+---- PARAMS
+
+
 type alias SignUpParams =
     { username : String
     , nickname : Maybe String
@@ -113,11 +122,11 @@ type alias SignUpParams =
 signUpParams : Model -> Maybe SignUpParams
 signUpParams model =
     case
-        ( model.username |> validValue
-        , model.nickname |> validValue
-        , model.email |> validValue
-        , model.password |> validValue
-        , model.passwordCopy |> validValue
+        ( model.username |> Validate.validValue
+        , model.nickname |> Validate.validValue
+        , model.email |> Validate.validValue
+        , model.password |> Validate.validValue
+        , model.passwordCopy |> Validate.validValue
         )
     of
         ( Just username, Just nickname, Just email, Just password, Just _ ) ->
@@ -152,7 +161,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetUsername string ->
-            ( { model | username = unchecked string }
+            ( { model | username = Validate.unchecked string }
             , Cmd.none
             )
 
@@ -160,25 +169,25 @@ update msg model =
             ( { model
                 | nickname =
                     if string /= "" then
-                        unchecked (Just string)
+                        Validate.unchecked (Just string)
                     else
-                        valid Nothing
+                        Validate.valid Nothing
               }
             , Cmd.none
             )
 
         SetEmail string ->
-            ( { model | email = unchecked string }
+            ( { model | email = Validate.unchecked string }
             , Cmd.none
             )
 
         SetPassword string ->
-            ( { model | password = unchecked string }
+            ( { model | password = Validate.unchecked string }
             , Cmd.none
             )
 
         SetPasswordCopy string ->
-            ( { model | passwordCopy = unchecked string }
+            ( { model | passwordCopy = Validate.unchecked string }
             , Cmd.none
             )
 
@@ -194,7 +203,7 @@ update msg model =
                     ( { model
                         | username =
                             model.username
-                                |> addErrors validationErrors
+                                |> Validate.addErrors validationErrors
                       }
                     , Cmd.none
                     )
@@ -269,7 +278,7 @@ view model =
         , viewInput "nickname"
             SetNickname
             (model.nickname
-                |> map (Maybe.withDefault "")
+                |> Validate.map (Maybe.withDefault "")
             )
         , viewInput "* email" SetEmail model.email
         , viewInput "* password" SetPassword model.password
@@ -282,11 +291,11 @@ view model =
         ]
 
 
-viewInput : String -> (String -> Msg) -> Validatable String String -> Html Msg
+viewInput : String -> (String -> Msg) -> Validatable String -> Html Msg
 viewInput label onInput value =
     let
         viewErrors =
-            case errors value of
+            case Validate.errors value of
                 Nothing ->
                     []
 
