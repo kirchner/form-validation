@@ -16,10 +16,12 @@ module Validate
 
 {-| Create validatable forms.
 
+@docs Validated
+
 
 # Creating validatable values
 
-@docs Validated, empty, unchecked, uncheck
+@docs empty, unchecked, uncheck
 
 
 # Getting information
@@ -27,7 +29,7 @@ module Validate
 @docs validValue, errors
 
 
-# Simple Validations
+# Simple String Validations
 
 @docs isNotEmpty, atLeast, consistsOfLetters, isEmail
 
@@ -118,8 +120,8 @@ uncheck value =
             Unchecked a
 
 
-{-| Return the actual value if it has been validated with positive
-outcome at least once.
+{-| Return the actual value if it has been successfully validated at
+least once.
 -}
 validValue : Validated a comparable -> Maybe a
 validValue value =
@@ -137,8 +139,8 @@ validValue value =
             Nothing
 
 
-{-| Return all validation errors if the value has been validated at
-least once.
+{-| Return all validation errors if the value has been tried to be
+validated at least once.
 -}
 errors : Validated a comparable -> Maybe (Set comparable)
 errors value =
@@ -156,7 +158,22 @@ errors value =
             Just errors
 
 
-{-| Check if the string value is non-empty.
+{-| Check if the string value is non-empty. The first argument is the
+error which is recorded if the value is empty.
+
+    (unchecked "I am not empty!"
+        |> isNotEmpty "the value must not be empty"
+        |> validValue
+    )
+        == Just "I am not empty!"
+
+    (unchecked ""
+        |> isNotEmpty "the value must not be empty"
+        |> errors
+        |> Maybe.map toList
+    )
+        == Just [ "the value must not be empty" ]
+
 -}
 isNotEmpty : comparable -> Validated String comparable -> Validated String comparable
 isNotEmpty error value =
@@ -200,9 +217,11 @@ isEmail error value =
 
 
 {-| Check if the value satisfies the condition. If not add the provided
-error to the list of errors. Note: If the value was in an invalid state before
-and satisfies the condition we drop the previous errors and return
-a valid value.
+error to the list of errors.
+
+**Note:** If the value was in an invalid state before and satisfies the
+condition we drop the previous errors and return a valid value.
+
 -}
 satisfies : (a -> Bool) -> comparable -> Validated a comparable -> Validated a comparable
 satisfies condition error value =
