@@ -197,10 +197,10 @@ decodeSignUpResponse =
 view : Model -> Html Msg
 view model =
     Html.div []
-        [ viewValidatedInput "username" SetUsername model.username
-        , viewValidatedInput "email" SetEmail model.email
-        , viewValidatedInput "password" SetPassword model.password
-        , viewValidatedInput "password again" SetPasswordCopy model.passwordCopy
+        [ viewInput "username" SetUsername model.username
+        , viewInput "email" SetEmail model.email
+        , viewInput "password" SetPassword model.password
+        , viewInput "password again" SetPasswordCopy model.passwordCopy
         , Html.button
             [ Events.onClick SignUp
             , Attributes.disabled (signUpParams model == Nothing)
@@ -209,8 +209,8 @@ view model =
         ]
 
 
-viewValidatedInput : String -> (String -> Msg) -> Validatable String String -> Html Msg
-viewValidatedInput label onInput value =
+viewInput : String -> (String -> Msg) -> Validatable String String -> Html Msg
+viewInput label onInput value =
     let
         viewErrors =
             case errors value of
@@ -238,19 +238,6 @@ viewValidatedInput label onInput value =
     ]
         |> List.concat
         |> Html.div []
-
-
-viewInput : String -> (String -> Msg) -> Html Msg
-viewInput label onInput =
-    Html.div []
-        [ Html.div []
-            [ Html.text label ]
-        , Html.input
-            [ Events.onInput onInput
-            , Events.onBlur ValidateForm
-            ]
-            []
-        ]
 
 
 
