@@ -43,19 +43,22 @@ init =
     )
 
 
-validateModel : Model -> Model
+validateModel : Model -> ( Model, Cmd Msg )
 validateModel model =
     let
         password =
             model.password
                 |> isNotEmpty "you must provide a password"
                 |> atLeast 6 "the password must contain at least 6 characters"
-    in
-    { model
-        | username =
+
+        username =
             model.username
                 |> isNotEmpty "username must not be empty"
                 |> consistsOfLetters "username must consist of letters only"
+    in
+    ( { model
+        | username =
+            username
         , email =
             model.email
                 |> isNotEmpty "email must not be empty"
@@ -65,7 +68,33 @@ validateModel model =
         , passwordCopy =
             model.passwordCopy
                 |> equals password "both passwords have to match up"
-    }
+      }
+    , case username |> validValue of
+        Nothing ->
+            Cmd.none
+
+        Just username ->
+            validateUsername username
+    )
+
+
+validateUsername : String -> Cmd Msg
+validateUsername username =
+    let
+        body =
+            [ "username" => Encode.string username ]
+                |> Encode.object
+                |> Http.jsonBody
+    in
+    decodeValidationErrors
+        |> Http.post "/validate" body
+        |> Http.send AddUsernameValidationErrors
+
+
+decodeValidationErrors : Decoder (Set String)
+decodeValidationErrors =
+    Decode.list Decode.string
+        |> Decode.map Set.fromList
 
 
 type alias SignUpParams =
@@ -105,6 +134,7 @@ type Msg
     | SetPassword String
     | SetPasswordCopy String
     | ValidateForm
+    | AddUsernameValidationErrors (Result Http.Error (Set String))
     | SignUp
     | WelcomeMessage (Result Http.Error String)
 
@@ -133,9 +163,21 @@ update msg model =
             )
 
         ValidateForm ->
-            ( model |> validateModel
-            , Cmd.none
-            )
+            model |> validateModel
+
+        AddUsernameValidationErrors result ->
+            case result of
+                Err error ->
+                    ( model, Cmd.none )
+
+                Ok validationErrors ->
+                    ( { model
+                        | username =
+                            model.username
+                                |> addErrors validationErrors
+                      }
+                    , Cmd.none
+                    )
 
         SignUp ->
             ( model

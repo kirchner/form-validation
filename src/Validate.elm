@@ -1,6 +1,7 @@
 module Validate
     exposing
         ( Validatable
+        , addErrors
         , atLeast
         , consistsOfLetters
         , empty
@@ -98,7 +99,7 @@ and we can extract a valid set of parameters with
 
 # Creating Validations
 
-@docs satisfies, equals
+@docs satisfies, equals, addErrors
 
 -}
 
@@ -335,3 +336,30 @@ equals reference error value =
 
         Invalid _ _ ->
             value |> uncheck
+
+
+{-| Add the given set of validation errors. This makes every value
+which is not empty invalid. You can use this function if you need to
+show validations to the user which can only be performed on the server,
+for example checking if a username is still available.
+
+**Note:** If the set is empty, we do not change the state of the value.
+
+-}
+addErrors : Set comparable -> Validatable a comparable -> Validatable a comparable
+addErrors validationErrors value =
+    if validationErrors |> Set.isEmpty then
+        value
+    else
+        case value of
+            Empty ->
+                Empty
+
+            Unchecked a ->
+                Invalid a validationErrors
+
+            Valid a ->
+                Invalid a validationErrors
+
+            Invalid a previousErrors ->
+                Invalid a (Set.union validationErrors previousErrors)
