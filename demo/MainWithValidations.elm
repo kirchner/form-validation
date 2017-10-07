@@ -26,6 +26,7 @@ main =
 
 type alias Model =
     { username : Validatable String String
+    , nickname : Validatable (Maybe String) String
     , email : Validatable String String
     , password : Validatable String String
     , passwordCopy : Validatable String String
@@ -35,6 +36,7 @@ type alias Model =
 init : ( Model, Cmd msg )
 init =
     ( { username = empty
+      , nickname = valid Nothing
       , email = empty
       , password = empty
       , passwordCopy = empty
@@ -59,6 +61,9 @@ validateModel model =
     ( { model
         | username =
             username
+        , nickname =
+            model.nickname
+                |> maybe (consistsOfLetters "nickname must consist of letters only")
         , email =
             model.email
                 |> isNotEmpty "email must not be empty"
@@ -99,6 +104,7 @@ decodeValidationErrors =
 
 type alias SignUpParams =
     { username : String
+    , nickname : Maybe String
     , email : String
     , password : String
     }
@@ -108,14 +114,16 @@ signUpParams : Model -> Maybe SignUpParams
 signUpParams model =
     case
         ( model.username |> validValue
+        , model.nickname |> validValue
         , model.email |> validValue
         , model.password |> validValue
         , model.passwordCopy |> validValue
         )
     of
-        ( Just username, Just email, Just password, Just _ ) ->
+        ( Just username, Just nickname, Just email, Just password, Just _ ) ->
             Just
                 { username = username
+                , nickname = nickname
                 , email = email
                 , password = password
                 }
@@ -130,6 +138,7 @@ signUpParams model =
 
 type Msg
     = SetUsername String
+    | SetNickname String
     | SetEmail String
     | SetPassword String
     | SetPasswordCopy String
@@ -144,6 +153,17 @@ update msg model =
     case msg of
         SetUsername string ->
             ( { model | username = unchecked string }
+            , Cmd.none
+            )
+
+        SetNickname string ->
+            ( { model
+                | nickname =
+                    if string /= "" then
+                        unchecked (Just string)
+                    else
+                        valid Nothing
+              }
             , Cmd.none
             )
 
@@ -209,13 +229,19 @@ update msg model =
 signUp : Model -> Cmd Msg
 signUp model =
     case model |> signUpParams of
-        Just { username, email, password } ->
+        Just { username, nickname, email, password } ->
             let
                 body =
-                    [ "username" => Encode.string username
-                    , "email" => Encode.string email
-                    , "password" => Encode.string password
+                    [ Just ("username" => Encode.string username)
+                    , nickname
+                        |> Maybe.map
+                            (\nickname ->
+                                "nickname" => Encode.string nickname
+                            )
+                    , Just ("email" => Encode.string email)
+                    , Just ("password" => Encode.string password)
                     ]
+                        |> List.filterMap identity
                         |> Encode.object
                         |> Http.jsonBody
             in
@@ -239,10 +265,15 @@ decodeSignUpResponse =
 view : Model -> Html Msg
 view model =
     Html.div []
-        [ viewInput "username" SetUsername model.username
-        , viewInput "email" SetEmail model.email
-        , viewInput "password" SetPassword model.password
-        , viewInput "password again" SetPasswordCopy model.passwordCopy
+        [ viewInput "* username" SetUsername model.username
+        , viewInput "nickname"
+            SetNickname
+            (model.nickname
+                |> map (Maybe.withDefault "")
+            )
+        , viewInput "* email" SetEmail model.email
+        , viewInput "* password" SetPassword model.password
+        , viewInput "* password again" SetPasswordCopy model.passwordCopy
         , Html.button
             [ Events.onClick SignUp
             , Attributes.disabled (signUpParams model == Nothing)

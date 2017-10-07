@@ -9,9 +9,12 @@ module Validate
         , errors
         , isEmail
         , isNotEmpty
+        , map
+        , maybe
         , satisfies
         , uncheck
         , unchecked
+        , valid
         , validValue
         )
 
@@ -88,7 +91,7 @@ and we can extract a valid set of parameters with
 
 # Creating validatable values
 
-@docs empty, unchecked, uncheck
+@docs empty, unchecked, uncheck, valid
 
 
 # Getting information
@@ -103,7 +106,7 @@ and we can extract a valid set of parameters with
 
 # Creating Validations
 
-@docs satisfies, equals, addErrors
+@docs satisfies, equals, addErrors, map, maybe
 
 -}
 
@@ -187,6 +190,14 @@ uncheck value =
 
         Invalid a _ ->
             Unchecked a
+
+
+{-| Create a valid value. Usefull for initializing with a default
+value.
+-}
+valid : a -> Validatable a comparable
+valid a =
+    Valid a
 
 
 {-| Return the actual value if it has been successfully validated at
@@ -367,3 +378,73 @@ addErrors validationErrors value =
 
             Invalid a previousErrors ->
                 Invalid a (Set.union validationErrors previousErrors)
+
+
+{-| Apply the given function on the actual value.
+-}
+map : (a -> b) -> Validatable a comparable -> Validatable b comparable
+map f value =
+    case value of
+        Empty ->
+            Empty
+
+        Unchecked a ->
+            Unchecked (f a)
+
+        Valid a ->
+            Valid (f a)
+
+        Invalid a errors ->
+            Invalid (f a) errors
+
+
+{-| Apply the validator on maybe values. If the value is `Nothing`, it
+is left unchanged. This is usefull if you need to validate optional
+arguments, for example
+
+    nickname : Validatable (Maybe String) String
+    nickname =
+        Nothing
+
+    (nickname
+        |> maybe (consistsOfLetters "nickname must consist of letters only)
+        |> validValue
+    )
+        == Just Nothing
+
+
+    invalidNickname : Validatable (Maybe String) String
+    invalidNickname =
+        Just "123"
+
+    (invalidNickname
+        |> maybe (consistsOfLetters "nickname must consist of letters only)
+        |> errors
+        |> Set.toList
+    )
+        == Just [ "nickname must consist of letters only" ]
+
+-}
+maybe :
+    (Validatable a comparable -> Validatable a comparable)
+    -> Validatable (Maybe a) comparable
+    -> Validatable (Maybe a) comparable
+maybe validator maybeValue =
+    case maybeValue of
+        Unchecked (Just a) ->
+            Unchecked a
+                |> validator
+                |> map Just
+
+        Valid (Just a) ->
+            Valid a
+                |> validator
+                |> map Just
+
+        Invalid (Just a) errors ->
+            Invalid a errors
+                |> validator
+                |> map Just
+
+        _ ->
+            maybeValue
