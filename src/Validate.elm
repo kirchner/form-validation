@@ -404,10 +404,10 @@ arguments, for example
 
     nickname : Validatable (Maybe String) String
     nickname =
-        Nothing
+        valid Nothing
 
     (nickname
-        |> maybe (consistsOfLetters "nickname must consist of letters only)
+        |> maybe (consistsOfLetters "nickname must consist of letters only")
         |> validValue
     )
         == Just Nothing
@@ -415,10 +415,10 @@ arguments, for example
 
     invalidNickname : Validatable (Maybe String) String
     invalidNickname =
-        Just "123"
+        unchecked (Just "123")
 
     (invalidNickname
-        |> maybe (consistsOfLetters "nickname must consist of letters only)
+        |> maybe (consistsOfLetters "nickname must consist of letters only")
         |> errors
         |> Set.toList
     )
