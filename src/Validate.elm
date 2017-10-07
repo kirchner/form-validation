@@ -1,6 +1,6 @@
 module Validate
     exposing
-        ( Validated
+        ( Validatable
         , atLeast
         , consistsOfLetters
         , empty
@@ -14,9 +14,71 @@ module Validate
         , validValue
         )
 
-{-| Create validatable forms.
+{-| Suppose your application has a sign up form and you want to start
+validating the user input before sending the actual request to the
+server.
 
-@docs Validated
+@docs Validatable
+
+@docs empty
+
+@docs unchecked
+
+Now, before you can actually use the values provided by the user, you
+have to run validations on your model:
+
+    validateModel : Model -> Model
+    validateModel model =
+        let
+            password =
+                model.password
+                    |> isNotEmpty "you must provide a password"
+                    |> atLeast 6 "the password must contain at least 6 characters"
+        in
+        { model
+            | username =
+                model.username
+                    |> isNotEmpty "username must not be empty"
+                    |> consistsOfLetters "username must consist of letters only"
+            , email =
+                model.email
+                    |> isNotEmpty "email must not be empty"
+                    |> isEmail "this is not a valid email address"
+            , password =
+                password
+            , passwordCopy =
+                model.passwordCopy
+                    |> equals password "both passwords have to match up"
+        }
+
+In this example, the parameters we actually need to submit will be
+
+    type alias SignUpParams =
+        { username : String
+        , email : String
+        , password : String
+        }
+
+and we can extract a valid set of parameters with
+
+    signUpParams : Model -> Maybe SignUpParams
+    signUpParams model =
+        case
+            ( model.username |> validValue
+            , model.email |> validValue
+            , model.password |> validValue
+            , model.passwordCopy |> validValue
+            )
+        of
+            ( Just username, Just email, Just password, Just _ ) ->
+                Just
+                    { username = username
+                    , email = email
+                    , password = password
+                    }
+
+            _ ->
+                Nothing
 
 
 # Creating validatable values
@@ -48,7 +110,7 @@ import Set exposing (Set)
 {-| You have to wrap every value of your form inside this type. For
 example, if your model looked something like
 
-    type alias Model =
+    type alias FormerModel =
         { username : String
         , email : String
         , password : String
@@ -58,14 +120,14 @@ example, if your model looked something like
 you have to change it to
 
     type alias Model =
-        { username : Validated String String
-        , email : Validated String String
-        , password : Validated String String
-        , passwordCopy : Validated String String
+        { username : Validatable String String
+        , email : Validatable String String
+        , password : Validatable String String
+        , passwordCopy : Validatable String String
         }
 
 -}
-type Validated a comparable
+type Validatable a comparable
     = Empty
     | Unchecked a
     | Valid a
@@ -74,6 +136,7 @@ type Validated a comparable
 
 {-| Use this to initialize your values:
 
+    init : Model
     init =
         { username = empty
         , email = empty
@@ -82,13 +145,14 @@ type Validated a comparable
         }
 
 -}
-empty : Validated a comparable
+empty : Validatable a comparable
 empty =
     Empty
 
 
 {-| Use this to update a value in your model in reaction to user input:
 
+    update : Msg -> Model -> Model
     update msg model =
         case msg of
             SetUsername string ->
@@ -97,14 +161,14 @@ empty =
             ...
 
 -}
-unchecked : a -> Validated a comparable
+unchecked : a -> Validatable a comparable
 unchecked a =
     Unchecked a
 
 
 {-| Set the value to unchecked if possible.
 -}
-uncheck : Validated a comparable -> Validated a comparable
+uncheck : Validatable a comparable -> Validatable a comparable
 uncheck value =
     case value of
         Empty ->
@@ -123,7 +187,7 @@ uncheck value =
 {-| Return the actual value if it has been successfully validated at
 least once.
 -}
-validValue : Validated a comparable -> Maybe a
+validValue : Validatable a comparable -> Maybe a
 validValue value =
     case value of
         Empty ->
@@ -142,7 +206,7 @@ validValue value =
 {-| Return all validation errors if the value has been tried to be
 validated at least once.
 -}
-errors : Validated a comparable -> Maybe (Set comparable)
+errors : Validatable a comparable -> Maybe (Set comparable)
 errors value =
     case value of
         Empty ->
@@ -175,21 +239,21 @@ error which is recorded if the value is empty.
         == Just [ "the value must not be empty" ]
 
 -}
-isNotEmpty : comparable -> Validated String comparable -> Validated String comparable
+isNotEmpty : comparable -> Validatable String comparable -> Validatable String comparable
 isNotEmpty error value =
     value |> satisfies (not << String.isEmpty) error
 
 
 {-| Check if the string value is at least 6 characters long.
 -}
-atLeast : Int -> comparable -> Validated String comparable -> Validated String comparable
+atLeast : Int -> comparable -> Validatable String comparable -> Validatable String comparable
 atLeast minimalLength error value =
     value |> satisfies (\string -> minimalLength <= String.length string) error
 
 
 {-| Check if the string value only consists of letters.
 -}
-consistsOfLetters : comparable -> Validated String comparable -> Validated String comparable
+consistsOfLetters : comparable -> Validatable String comparable -> Validatable String comparable
 consistsOfLetters error value =
     let
         onlyLetters string =
@@ -203,7 +267,7 @@ consistsOfLetters error value =
 
 {-| Check if the string value is a proper email address.
 -}
-isEmail : comparable -> Validated String comparable -> Validated String comparable
+isEmail : comparable -> Validatable String comparable -> Validatable String comparable
 isEmail error value =
     let
         validEmail string =
@@ -223,7 +287,7 @@ error to the list of errors.
 condition we drop the previous errors and return a valid value.
 
 -}
-satisfies : (a -> Bool) -> comparable -> Validated a comparable -> Validated a comparable
+satisfies : (a -> Bool) -> comparable -> Validatable a comparable -> Validatable a comparable
 satisfies condition error value =
     case value of
         Empty ->
@@ -254,10 +318,10 @@ reference value is empty or invalid we switch back the value to the unchecked
 state, no matter what.
 -}
 equals :
-    Validated a comparable
+    Validatable a comparable
     -> comparable
-    -> Validated a comparable
-    -> Validated a comparable
+    -> Validatable a comparable
+    -> Validatable a comparable
 equals reference error value =
     case reference of
         Empty ->

@@ -25,10 +25,10 @@ main =
 
 
 type alias Model =
-    { username : Validated String String
-    , email : Validated String String
-    , password : Validated String String
-    , passwordCopy : Validated String String
+    { username : Validatable String String
+    , email : Validatable String String
+    , password : Validatable String String
+    , passwordCopy : Validatable String String
     }
 
 
@@ -209,7 +209,7 @@ view model =
         ]
 
 
-viewValidatedInput : String -> (String -> Msg) -> Validated String String -> Html Msg
+viewValidatedInput : String -> (String -> Msg) -> Validatable String String -> Html Msg
 viewValidatedInput label onInput value =
     let
         viewErrors =
