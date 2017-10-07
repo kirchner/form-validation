@@ -11,6 +11,7 @@ import Set exposing (Set)
 import Validate
 
 
+main : Program Never Model Msg
 main =
     Html.program
         { init = init
@@ -54,13 +55,13 @@ validateModel model =
     let
         password =
             model.password
-                |> Validate.isNotEmpty "you must provide a password"
-                |> Validate.atLeast 6 "the password must contain at least 6 characters"
+                |> Validate.isNotEmpty "You must provide a password."
+                |> Validate.atLeast 6 "The password must contain at least 6 characters."
 
         username =
             model.username
-                |> Validate.isNotEmpty "username must not be empty"
-                |> Validate.consistsOfLetters "username must consist of letters only"
+                |> Validate.isNotEmpty "The username must not be empty."
+                |> Validate.consistsOfLetters "The username must consist of letters only."
     in
     ( { model
         | username =
@@ -68,16 +69,16 @@ validateModel model =
         , nickname =
             model.nickname
                 |> Validate.maybe
-                    (Validate.consistsOfLetters "nickname must consist of letters only")
+                    (Validate.consistsOfLetters "The nickname must consist of letters only.")
         , email =
             model.email
-                |> Validate.isNotEmpty "email must not be empty"
-                |> Validate.isEmail "this is not a valid email address"
+                |> Validate.isNotEmpty "You must provide an email."
+                |> Validate.isEmail "This is not a valid email address."
         , password =
             password
         , passwordCopy =
             model.passwordCopy
-                |> Validate.equals password "both passwords have to match up"
+                |> Validate.equals password "Both passwords have to match up."
       }
     , case username |> Validate.validValue of
         Nothing ->
@@ -273,26 +274,48 @@ decodeSignUpResponse =
 
 view : Model -> Html Msg
 view model =
-    Html.div []
-        [ viewInput "* username" SetUsername model.username
-        , viewInput "nickname"
-            SetNickname
-            (model.nickname
-                |> Validate.map (Maybe.withDefault "")
-            )
-        , viewInput "* email" SetEmail model.email
-        , viewInput "* password" SetPassword model.password
-        , viewInput "* password again" SetPasswordCopy model.passwordCopy
-        , Html.button
-            [ Events.onClick SignUp
-            , Attributes.disabled (signUpParams model == Nothing)
+    Html.div
+        [ Attributes.class "container" ]
+        [ Html.form
+            [ Attributes.class "form-horizontal"
+            , Attributes.class "col-sm-offset-2"
+            , Attributes.class "col-sm-8"
             ]
-            [ Html.text "sign up" ]
+            [ Html.h1
+                [ Attributes.class "text-center" ]
+                [ Html.text "Join our service!" ]
+            , viewInput "text" "* Username" SetUsername model.username
+            , viewInput "text"
+                "Nickname"
+                SetNickname
+                (model.nickname
+                    |> Validate.map (Maybe.withDefault "")
+                )
+            , viewInput "email" "* Email" SetEmail model.email
+            , viewInput "password" "* Password" SetPassword model.password
+            , viewInput "password" "* Password again" SetPasswordCopy model.passwordCopy
+            , Html.div
+                [ Attributes.class "form-group" ]
+                [ Html.div
+                    [ Attributes.class "col-sm-offset-4"
+                    , Attributes.class "col-sm-8"
+                    ]
+                    [ Html.button
+                        [ Attributes.class "btn"
+                        , Attributes.class "btn-default"
+                        , Attributes.class "btn-block"
+                        , Events.onClick SignUp
+                        , Attributes.disabled (signUpParams model == Nothing)
+                        ]
+                        [ Html.text "Sign up" ]
+                    ]
+                ]
+            ]
         ]
 
 
-viewInput : String -> (String -> Msg) -> Validatable String -> Html Msg
-viewInput label onInput value =
+viewInput : String -> String -> (String -> Msg) -> Validatable String -> Html Msg
+viewInput type_ label onInput value =
     let
         viewErrors =
             case Validate.errors value of
@@ -300,26 +323,59 @@ viewInput label onInput value =
                     []
 
                 Just errors ->
-                    errors
+                    [ errors
                         |> Set.toList
                         |> List.map viewError
+                        |> Html.div
+                            [ Attributes.class "col-sm-offset-4"
+                            , Attributes.class "col-sm-8"
+                            ]
+                    ]
 
         viewError error =
-            Html.div []
+            Html.span
+                [ Attributes.class "help-block" ]
                 [ Html.text error ]
+
+        id =
+            label
+                |> String.toLower
+                |> String.toList
+                |> List.filter Char.isLower
+                |> String.fromList
     in
-    [ [ Html.div []
-            [ Html.text label ]
-      , Html.input
-            [ Events.onInput onInput
-            , Events.onBlur ValidateForm
+    [ [ Html.label
+            [ Attributes.for id
+            , Attributes.class "col-sm-4"
+            , Attributes.class "control-label"
             ]
-            []
+            [ Html.text label ]
+      , Html.div
+            [ Attributes.class "col-sm-8" ]
+            [ Html.input
+                [ Attributes.id id
+                , Attributes.class "form-control"
+                , Attributes.type_ type_
+                , Events.onInput onInput
+                , Events.onBlur ValidateForm
+                ]
+                []
+            ]
       ]
     , viewErrors
     ]
         |> List.concat
-        |> Html.div []
+        |> Html.div
+            ([ [ Attributes.class "form-group" ]
+             , if Validate.validValue value /= Nothing then
+                [ Attributes.class "has-success" ]
+               else if Validate.errors value /= Nothing then
+                [ Attributes.class "has-error" ]
+               else
+                []
+             ]
+                |> List.concat
+            )
 
 
 

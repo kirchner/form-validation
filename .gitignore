@@ -2,3 +2,4 @@
 *.json
 !elm-package.json
 elm-stuff/
+gh-pages/
