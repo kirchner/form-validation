@@ -154,6 +154,7 @@ type Msg
     | SetPasswordCopy String
     | ValidateForm
     | AddUsernameValidationErrors (Result Http.Error (Set String))
+    | Reset
     | SignUp
     | WelcomeMessage (Result Http.Error String)
 
@@ -208,6 +209,9 @@ update msg model =
                       }
                     , Cmd.none
                     )
+
+        Reset ->
+            init
 
         SignUp ->
             ( model
@@ -300,14 +304,38 @@ view model =
                     [ Attributes.class "col-sm-offset-4"
                     , Attributes.class "col-sm-8"
                     ]
-                    [ Html.button
-                        [ Attributes.class "btn"
-                        , Attributes.class "btn-default"
-                        , Attributes.class "btn-block"
-                        , Events.onClick SignUp
-                        , Attributes.disabled (signUpParams model == Nothing)
+                    [ Html.div
+                        [ Attributes.class "row" ]
+                        [ Html.div
+                            [ Attributes.class "col-sm-6" ]
+                            [ Html.button
+                                [ Attributes.class "btn"
+                                , Attributes.class "btn-warning"
+                                , Attributes.class "btn-block"
+                                , Events.onWithOptions "click"
+                                    { preventDefault = True
+                                    , stopPropagation = False
+                                    }
+                                    (Decode.succeed Reset)
+                                ]
+                                [ Html.text "Clear form" ]
+                            ]
+                        , Html.div
+                            [ Attributes.class "col-sm-6" ]
+                            [ Html.button
+                                [ Attributes.class "btn"
+                                , Attributes.class "btn-primary"
+                                , Attributes.class "btn-block"
+                                , Events.onWithOptions "click"
+                                    { preventDefault = True
+                                    , stopPropagation = False
+                                    }
+                                    (Decode.succeed SignUp)
+                                , Attributes.disabled (signUpParams model == Nothing)
+                                ]
+                                [ Html.text "Sign up" ]
+                            ]
                         ]
-                        [ Html.text "Sign up" ]
                     ]
                 ]
             ]
