@@ -16,6 +16,7 @@ module Validate
         , unchecked
         , valid
         , validValue
+        , with
         )
 
 {-| Suppose your application has a sign up form and you want to start
@@ -106,7 +107,7 @@ and we can extract a valid set of parameters with
 
 # Creating Validations
 
-@docs satisfies, equals, addErrors, map, maybe
+@docs satisfies, equals, addErrors, map, maybe, with
 
 -}
 
@@ -328,29 +329,15 @@ satisfies condition error value =
                 Invalid a (Set.insert error prevErrors)
 
 
-{-| Given a reference value, check if the value equals it. The check is
-only performed if the reference value was successfully validated. If the
-reference value is empty or invalid we switch back the value to the unchecked
-state, no matter what.
+{-| Given a reference value, check if the value equals it.
 -}
 equals :
-    Validatable a comparable
+    a
     -> comparable
     -> Validatable a comparable
     -> Validatable a comparable
 equals reference error value =
-    case reference of
-        Empty ->
-            value |> uncheck
-
-        Unchecked _ ->
-            value
-
-        Valid referenceA ->
-            value |> satisfies ((==) referenceA) error
-
-        Invalid _ _ ->
-            value |> uncheck
+    value |> satisfies ((==) reference) error
 
 
 {-| Add the given set of validation errors. This makes every value
@@ -448,3 +435,38 @@ maybe validator maybeValue =
 
         _ ->
             maybeValue
+
+
+{-| Apply a validation only if another value was successfully validated.
+This unchecks the value if the provided value was not valid. For
+example, you can do something like this
+
+    password : Validatable String String
+
+    passwordCopy : Validatable String String
+    passwordCopy =
+        oldPasswordCopy
+            |> Validate.with password
+                (\validPassword ->
+                    Validate.equals validPassword "Both passwords have to match up."
+                )
+
+-}
+with :
+    Validatable a comparable
+    -> (a -> Validatable b comparable -> Validatable b comparable)
+    -> Validatable b comparable
+    -> Validatable b comparable
+with reference validator value =
+    case reference of
+        Empty ->
+            value |> uncheck
+
+        Unchecked _ ->
+            value |> uncheck
+
+        Valid referenceA ->
+            validator referenceA value
+
+        Invalid _ _ ->
+            value |> uncheck

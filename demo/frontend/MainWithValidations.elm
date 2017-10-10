@@ -78,7 +78,10 @@ validateModel model =
             password
         , passwordCopy =
             model.passwordCopy
-                |> Validate.equals password "Both passwords have to match up."
+                |> Validate.with password
+                    (\validPassword ->
+                        Validate.equals validPassword "Both passwords have to match up."
+                    )
       }
     , case username |> Validate.validValue of
         Nothing ->
