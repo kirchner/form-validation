@@ -8,10 +8,14 @@ module Validate
         , equals
         , errors
         , isEmail
+        , isFloat
+        , isInt
         , isNotEmpty
         , map
         , maybe
+        , rawValue
         , satisfies
+        , try
         , uncheck
         , unchecked
         , valid
@@ -97,7 +101,7 @@ and we can extract a valid set of parameters with
 
 # Getting information
 
-@docs validValue, errors
+@docs validValue, errors, rawValue
 
 
 # Simple String Validations
@@ -105,9 +109,14 @@ and we can extract a valid set of parameters with
 @docs isNotEmpty, atLeast, consistsOfLetters, isEmail
 
 
+# Validations involving type casts
+
+@docs isInt, isFloat
+
+
 # Creating Validations
 
-@docs satisfies, equals, addErrors, map, maybe, with
+@docs try, satisfies, equals, addErrors, map, maybe, with
 
 -}
 
@@ -140,7 +149,7 @@ type Validatable a comparable
     = Empty
     | Unchecked a
     | Valid a
-    | Invalid a (Set comparable)
+    | Invalid (Maybe a) (Set comparable)
 
 
 {-| Use this to initialize your values:
@@ -189,8 +198,14 @@ uncheck value =
         Valid a ->
             Unchecked a
 
-        Invalid a _ ->
-            Unchecked a
+        Invalid maybeA _ ->
+            case maybeA of
+                Just a ->
+                    Unchecked a
+
+                Nothing ->
+                    --> TODO: do we want this behaviour?
+                    Empty
 
 
 {-| Create a valid value. Usefull for initializing with a default
@@ -237,6 +252,35 @@ errors value =
 
         Invalid _ errors ->
             Just errors
+
+
+{-| **I am not sure if it is a good idea to have this function at all,
+so it may be removed in the future.**
+
+Return the value, no matter if it is valid or not.
+
+**Note:** If the value is in an invalid state, there may not be a raw
+value anymore.
+
+**Note:** Don't use this to extract the value for submitting the form.
+Use `validValue` instead, to ensure at compile time that you only submit
+valid values.
+
+-}
+rawValue : Validatable a comparable -> Maybe a
+rawValue value =
+    case value of
+        Empty ->
+            Nothing
+
+        Unchecked a ->
+            Just a
+
+        Valid a ->
+            Just a
+
+        Invalid maybeA _ ->
+            maybeA
 
 
 {-| Check if the string value is non-empty. The first argument is the
@@ -297,6 +341,44 @@ isEmail error value =
     value |> satisfies validEmail error
 
 
+{-| Try to cast a `String` to an `Int`.
+-}
+isInt : comparable -> String -> Validatable Int comparable
+isInt error input =
+    input
+        |> try String.toInt (\_ -> error)
+
+
+{-| Try to cast a `String` to a `Float`.
+-}
+isFloat : comparable -> String -> Validatable Float comparable
+isFloat error input =
+    input
+        |> try String.toFloat (\_ -> error)
+
+
+{-| Run the provided computation which might result in an error. If it
+succeeds, we get a valid value, if it fails we get an invalid state with
+the given errors. So, you can do something like this:
+
+    ("not a number"
+        |> try String.toInt (\err -> "You must provide an integer: " ++ err)
+        |> errors
+        |> Maybe.map toList
+    )
+        == Just [ "You must provide an integer: could not convert ..." ]
+
+-}
+try : (a -> Result err b) -> (err -> comparable) -> a -> Validatable b comparable
+try cast error value =
+    case cast value of
+        Err err ->
+            Invalid Nothing (Set.singleton (error err))
+
+        Ok casted ->
+            Valid casted
+
+
 {-| Check if the value satisfies the condition. If not add the provided
 error to the list of errors.
 
@@ -314,19 +396,24 @@ satisfies condition error value =
             if condition a then
                 Valid a
             else
-                Invalid a (Set.singleton error)
+                Invalid (Just a) (Set.singleton error)
 
         Valid a ->
             if condition a then
                 value
             else
-                Invalid a (Set.singleton error)
+                Invalid (Just a) (Set.singleton error)
 
-        Invalid a prevErrors ->
-            if condition a then
-                value
-            else
-                Invalid a (Set.insert error prevErrors)
+        Invalid maybeA prevErrors ->
+            case maybeA of
+                Just a ->
+                    if condition a then
+                        value
+                    else
+                        Invalid maybeA (Set.insert error prevErrors)
+
+                Nothing ->
+                    value
 
 
 {-| Given a reference value, check if the value equals it.
@@ -358,13 +445,13 @@ addErrors validationErrors value =
                 Empty
 
             Unchecked a ->
-                Invalid a validationErrors
+                Invalid (Just a) validationErrors
 
             Valid a ->
-                Invalid a validationErrors
+                Invalid (Just a) validationErrors
 
-            Invalid a previousErrors ->
-                Invalid a (Set.union validationErrors previousErrors)
+            Invalid maybeA previousErrors ->
+                Invalid maybeA (Set.union validationErrors previousErrors)
 
 
 {-| Apply the given function on the actual value.
@@ -381,8 +468,8 @@ map f value =
         Valid a ->
             Valid (f a)
 
-        Invalid a errors ->
-            Invalid (f a) errors
+        Invalid maybeA errors ->
+            Invalid (maybeA |> Maybe.map f) errors
 
 
 {-| Apply the validator on maybe values. If the value is `Nothing`, it

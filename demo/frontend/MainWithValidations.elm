@@ -29,6 +29,7 @@ type alias Model =
     { username : Validatable String
     , nickname : Validatable (Maybe String)
     , email : Validatable String
+    , age : Validatable Int
     , password : Validatable String
     , passwordCopy : Validatable String
     }
@@ -43,6 +44,7 @@ init =
     ( { username = Validate.empty
       , nickname = Validate.valid Nothing
       , email = Validate.empty
+      , age = Validate.empty
       , password = Validate.empty
       , passwordCopy = Validate.empty
       }
@@ -153,6 +155,7 @@ type Msg
     = SetUsername String
     | SetNickname String
     | SetEmail String
+    | SetAge String
     | SetPassword String
     | SetPasswordCopy String
     | ValidateForm
@@ -183,6 +186,17 @@ update msg model =
 
         SetEmail string ->
             ( { model | email = Validate.unchecked string }
+            , Cmd.none
+            )
+
+        SetAge string ->
+            ( { model
+                | age =
+                    string
+                        |> Validate.isInt "Age must be an integer."
+                        |> Validate.satisfies (\age -> age >= 0)
+                            "Your age must be positive"
+              }
             , Cmd.none
             )
 
@@ -299,6 +313,9 @@ view model =
                     |> Validate.map (Maybe.withDefault "")
                 )
             , viewInput "email" "* Email" SetEmail model.email
+            , model.age
+                |> Validate.map toString
+                |> viewInput "age" "* Age" SetAge
             , viewInput "password" "* Password" SetPassword model.password
             , viewInput "password" "* Password again" SetPasswordCopy model.passwordCopy
             , Html.div
