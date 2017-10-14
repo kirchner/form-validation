@@ -13260,20 +13260,20 @@ var _elm_lang$http$Http$StringPart = F2(
 	});
 var _elm_lang$http$Http$stringPart = _elm_lang$http$Http$StringPart;
 
-var _kirchner$form_validation$Validate$errors = function (value) {
+var _kirchner$form_validation$Validate$rawValue = function (value) {
 	var _p0 = value;
 	switch (_p0.ctor) {
 		case 'Empty':
 			return _elm_lang$core$Maybe$Nothing;
 		case 'Unchecked':
-			return _elm_lang$core$Maybe$Nothing;
+			return _elm_lang$core$Maybe$Just(_p0._0);
 		case 'Valid':
-			return _elm_lang$core$Maybe$Nothing;
+			return _elm_lang$core$Maybe$Just(_p0._0);
 		default:
-			return _elm_lang$core$Maybe$Just(_p0._1);
+			return _p0._0;
 	}
 };
-var _kirchner$form_validation$Validate$validValue = function (value) {
+var _kirchner$form_validation$Validate$errors = function (value) {
 	var _p1 = value;
 	switch (_p1.ctor) {
 		case 'Empty':
@@ -13281,7 +13281,20 @@ var _kirchner$form_validation$Validate$validValue = function (value) {
 		case 'Unchecked':
 			return _elm_lang$core$Maybe$Nothing;
 		case 'Valid':
-			return _elm_lang$core$Maybe$Just(_p1._0);
+			return _elm_lang$core$Maybe$Nothing;
+		default:
+			return _elm_lang$core$Maybe$Just(_p1._1);
+	}
+};
+var _kirchner$form_validation$Validate$validValue = function (value) {
+	var _p2 = value;
+	switch (_p2.ctor) {
+		case 'Empty':
+			return _elm_lang$core$Maybe$Nothing;
+		case 'Unchecked':
+			return _elm_lang$core$Maybe$Nothing;
+		case 'Valid':
+			return _elm_lang$core$Maybe$Just(_p2._0);
 		default:
 			return _elm_lang$core$Maybe$Nothing;
 	}
@@ -13296,6 +13309,39 @@ var _kirchner$form_validation$Validate$Valid = function (a) {
 var _kirchner$form_validation$Validate$valid = function (a) {
 	return _kirchner$form_validation$Validate$Valid(a);
 };
+var _kirchner$form_validation$Validate$try = F3(
+	function (cast, error, value) {
+		var _p3 = cast(value);
+		if (_p3.ctor === 'Err') {
+			return A2(
+				_kirchner$form_validation$Validate$Invalid,
+				_elm_lang$core$Maybe$Nothing,
+				_elm_lang$core$Set$singleton(
+					error(_p3._0)));
+		} else {
+			return _kirchner$form_validation$Validate$Valid(_p3._0);
+		}
+	});
+var _kirchner$form_validation$Validate$isInt = F2(
+	function (error, input) {
+		return A3(
+			_kirchner$form_validation$Validate$try,
+			_elm_lang$core$String$toInt,
+			function (_p4) {
+				return error;
+			},
+			input);
+	});
+var _kirchner$form_validation$Validate$isFloat = F2(
+	function (error, input) {
+		return A3(
+			_kirchner$form_validation$Validate$try,
+			_elm_lang$core$String$toFloat,
+			function (_p5) {
+				return error;
+			},
+			input);
+	});
 var _kirchner$form_validation$Validate$Unchecked = function (a) {
 	return {ctor: 'Unchecked', _0: a};
 };
@@ -13305,50 +13351,74 @@ var _kirchner$form_validation$Validate$unchecked = function (a) {
 var _kirchner$form_validation$Validate$Empty = {ctor: 'Empty'};
 var _kirchner$form_validation$Validate$empty = _kirchner$form_validation$Validate$Empty;
 var _kirchner$form_validation$Validate$uncheck = function (value) {
-	var _p2 = value;
-	switch (_p2.ctor) {
+	var _p6 = value;
+	switch (_p6.ctor) {
 		case 'Empty':
 			return _kirchner$form_validation$Validate$Empty;
 		case 'Unchecked':
 			return value;
 		case 'Valid':
-			return _kirchner$form_validation$Validate$Unchecked(_p2._0);
+			return _kirchner$form_validation$Validate$Unchecked(_p6._0);
 		default:
-			return _kirchner$form_validation$Validate$Unchecked(_p2._0);
+			var _p7 = _p6._0;
+			if (_p7.ctor === 'Just') {
+				return _kirchner$form_validation$Validate$Unchecked(_p7._0);
+			} else {
+				return _kirchner$form_validation$Validate$Empty;
+			}
 	}
 };
+var _kirchner$form_validation$Validate$with = F3(
+	function (reference, validator, value) {
+		var _p8 = reference;
+		switch (_p8.ctor) {
+			case 'Empty':
+				return _kirchner$form_validation$Validate$uncheck(value);
+			case 'Unchecked':
+				return _kirchner$form_validation$Validate$uncheck(value);
+			case 'Valid':
+				return A2(validator, _p8._0, value);
+			default:
+				return _kirchner$form_validation$Validate$uncheck(value);
+		}
+	});
 var _kirchner$form_validation$Validate$satisfies = F3(
 	function (condition, error, value) {
-		var _p3 = value;
-		switch (_p3.ctor) {
+		var _p9 = value;
+		switch (_p9.ctor) {
 			case 'Empty':
 				return _kirchner$form_validation$Validate$Empty;
 			case 'Unchecked':
-				var _p4 = _p3._0;
-				return condition(_p4) ? _kirchner$form_validation$Validate$Valid(_p4) : A2(
+				var _p10 = _p9._0;
+				return condition(_p10) ? _kirchner$form_validation$Validate$Valid(_p10) : A2(
 					_kirchner$form_validation$Validate$Invalid,
-					_p4,
+					_elm_lang$core$Maybe$Just(_p10),
 					_elm_lang$core$Set$singleton(error));
 			case 'Valid':
-				var _p5 = _p3._0;
-				return condition(_p5) ? value : A2(
+				var _p11 = _p9._0;
+				return condition(_p11) ? value : A2(
 					_kirchner$form_validation$Validate$Invalid,
-					_p5,
+					_elm_lang$core$Maybe$Just(_p11),
 					_elm_lang$core$Set$singleton(error));
 			default:
-				var _p6 = _p3._0;
-				return condition(_p6) ? value : A2(
-					_kirchner$form_validation$Validate$Invalid,
-					_p6,
-					A2(_elm_lang$core$Set$insert, error, _p3._1));
+				var _p13 = _p9._0;
+				var _p12 = _p13;
+				if (_p12.ctor === 'Just') {
+					return condition(_p12._0) ? value : A2(
+						_kirchner$form_validation$Validate$Invalid,
+						_p13,
+						A2(_elm_lang$core$Set$insert, error, _p9._1));
+				} else {
+					return value;
+				}
 		}
 	});
 var _kirchner$form_validation$Validate$isNotEmpty = F2(
 	function (error, value) {
 		return A3(
 			_kirchner$form_validation$Validate$satisfies,
-			function (_p7) {
-				return !_elm_lang$core$String$isEmpty(_p7);
+			function (_p14) {
+				return !_elm_lang$core$String$isEmpty(_p14);
 			},
 			error,
 			value);
@@ -13387,103 +13457,99 @@ var _kirchner$form_validation$Validate$isEmail = F2(
 	});
 var _kirchner$form_validation$Validate$equals = F3(
 	function (reference, error, value) {
-		var _p8 = reference;
-		switch (_p8.ctor) {
-			case 'Empty':
-				return _kirchner$form_validation$Validate$uncheck(value);
-			case 'Unchecked':
-				return value;
-			case 'Valid':
-				return A3(
-					_kirchner$form_validation$Validate$satisfies,
-					F2(
-						function (x, y) {
-							return _elm_lang$core$Native_Utils.eq(x, y);
-						})(_p8._0),
-					error,
-					value);
-			default:
-				return _kirchner$form_validation$Validate$uncheck(value);
-		}
+		return A3(
+			_kirchner$form_validation$Validate$satisfies,
+			F2(
+				function (x, y) {
+					return _elm_lang$core$Native_Utils.eq(x, y);
+				})(reference),
+			error,
+			value);
 	});
 var _kirchner$form_validation$Validate$addErrors = F2(
 	function (validationErrors, value) {
 		if (_elm_lang$core$Set$isEmpty(validationErrors)) {
 			return value;
 		} else {
-			var _p9 = value;
-			switch (_p9.ctor) {
+			var _p15 = value;
+			switch (_p15.ctor) {
 				case 'Empty':
 					return _kirchner$form_validation$Validate$Empty;
 				case 'Unchecked':
-					return A2(_kirchner$form_validation$Validate$Invalid, _p9._0, validationErrors);
+					return A2(
+						_kirchner$form_validation$Validate$Invalid,
+						_elm_lang$core$Maybe$Just(_p15._0),
+						validationErrors);
 				case 'Valid':
-					return A2(_kirchner$form_validation$Validate$Invalid, _p9._0, validationErrors);
+					return A2(
+						_kirchner$form_validation$Validate$Invalid,
+						_elm_lang$core$Maybe$Just(_p15._0),
+						validationErrors);
 				default:
 					return A2(
 						_kirchner$form_validation$Validate$Invalid,
-						_p9._0,
-						A2(_elm_lang$core$Set$union, validationErrors, _p9._1));
+						_p15._0,
+						A2(_elm_lang$core$Set$union, validationErrors, _p15._1));
 			}
 		}
 	});
 var _kirchner$form_validation$Validate$map = F2(
 	function (f, value) {
-		var _p10 = value;
-		switch (_p10.ctor) {
+		var _p16 = value;
+		switch (_p16.ctor) {
 			case 'Empty':
 				return _kirchner$form_validation$Validate$Empty;
 			case 'Unchecked':
 				return _kirchner$form_validation$Validate$Unchecked(
-					f(_p10._0));
+					f(_p16._0));
 			case 'Valid':
 				return _kirchner$form_validation$Validate$Valid(
-					f(_p10._0));
+					f(_p16._0));
 			default:
 				return A2(
 					_kirchner$form_validation$Validate$Invalid,
-					f(_p10._0),
-					_p10._1);
+					A2(_elm_lang$core$Maybe$map, f, _p16._0),
+					_p16._1);
 		}
 	});
 var _kirchner$form_validation$Validate$maybe = F2(
 	function (validator, maybeValue) {
-		var _p11 = maybeValue;
-		_v7_3:
+		var _p17 = maybeValue;
+		_v11_3:
 		do {
-			switch (_p11.ctor) {
+			switch (_p17.ctor) {
 				case 'Unchecked':
-					if (_p11._0.ctor === 'Just') {
+					if (_p17._0.ctor === 'Just') {
 						return A2(
 							_kirchner$form_validation$Validate$map,
 							_elm_lang$core$Maybe$Just,
 							validator(
-								_kirchner$form_validation$Validate$Unchecked(_p11._0._0)));
+								_kirchner$form_validation$Validate$Unchecked(_p17._0._0)));
 					} else {
-						break _v7_3;
+						break _v11_3;
 					}
 				case 'Valid':
-					if (_p11._0.ctor === 'Just') {
+					if (_p17._0.ctor === 'Just') {
 						return A2(
 							_kirchner$form_validation$Validate$map,
 							_elm_lang$core$Maybe$Just,
 							validator(
-								_kirchner$form_validation$Validate$Valid(_p11._0._0)));
+								_kirchner$form_validation$Validate$Valid(_p17._0._0)));
 					} else {
-						break _v7_3;
+						break _v11_3;
 					}
 				case 'Invalid':
-					if (_p11._0.ctor === 'Just') {
+					if (_p17._0.ctor === 'Just') {
 						return A2(
 							_kirchner$form_validation$Validate$map,
 							_elm_lang$core$Maybe$Just,
 							validator(
-								A2(_kirchner$form_validation$Validate$Invalid, _p11._0._0, _p11._1)));
+								A2(_kirchner$form_validation$Validate$Invalid, _p17._0._0, _p17._1)));
 					} else {
-						break _v7_3;
+						break _v11_3;
 					}
 				default:
-					break _v7_3;
+					break _v11_3;
 			}
 		} while(false);
 		return maybeValue;
@@ -13521,14 +13587,15 @@ var _kirchner$form_validation$MainWithValidations$init = {
 		username: _kirchner$form_validation$Validate$empty,
 		nickname: _kirchner$form_validation$Validate$valid(_elm_lang$core$Maybe$Nothing),
 		email: _kirchner$form_validation$Validate$empty,
+		age: _kirchner$form_validation$Validate$empty,
 		password: _kirchner$form_validation$Validate$empty,
 		passwordCopy: _kirchner$form_validation$Validate$empty
 	},
 	_1: _elm_lang$core$Platform_Cmd$none
 };
-var _kirchner$form_validation$MainWithValidations$Model = F5(
-	function (a, b, c, d, e) {
-		return {username: a, nickname: b, email: c, password: d, passwordCopy: e};
+var _kirchner$form_validation$MainWithValidations$Model = F6(
+	function (a, b, c, d, e, f) {
+		return {username: a, nickname: b, email: c, age: d, password: e, passwordCopy: f};
 	});
 var _kirchner$form_validation$MainWithValidations$SignUpParams = F4(
 	function (a, b, c, d) {
@@ -13636,7 +13703,13 @@ var _kirchner$form_validation$MainWithValidations$validateModel = function (mode
 					'This is not a valid email address.',
 					A2(_kirchner$form_validation$Validate$isNotEmpty, 'You must provide an email.', model.email)),
 				password: password,
-				passwordCopy: A3(_kirchner$form_validation$Validate$equals, password, 'Both passwords have to match up.', model.passwordCopy)
+				passwordCopy: A3(
+					_kirchner$form_validation$Validate$with,
+					password,
+					function (validPassword) {
+						return A2(_kirchner$form_validation$Validate$equals, validPassword, 'Both passwords have to match up.');
+					},
+					model.passwordCopy)
 			}),
 		_1: function () {
 			var _p2 = _kirchner$form_validation$Validate$validValue(username);
@@ -13681,6 +13754,22 @@ var _kirchner$form_validation$MainWithValidations$update = F2(
 						model,
 						{
 							email: _kirchner$form_validation$Validate$unchecked(_p3._0)
+						}),
+					_1: _elm_lang$core$Platform_Cmd$none
+				};
+			case 'SetAge':
+				return {
+					ctor: '_Tuple2',
+					_0: _elm_lang$core$Native_Utils.update(
+						model,
+						{
+							age: A3(
+								_kirchner$form_validation$Validate$satisfies,
+								function (age) {
+									return _elm_lang$core$Native_Utils.cmp(age, 0) > -1;
+								},
+								'Your age must be positive',
+								A2(_kirchner$form_validation$Validate$isInt, 'Age must be an integer.', _p3._0))
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
@@ -13895,6 +13984,9 @@ var _kirchner$form_validation$MainWithValidations$SetPasswordCopy = function (a)
 var _kirchner$form_validation$MainWithValidations$SetPassword = function (a) {
 	return {ctor: 'SetPassword', _0: a};
 };
+var _kirchner$form_validation$MainWithValidations$SetAge = function (a) {
+	return {ctor: 'SetAge', _0: a};
+};
 var _kirchner$form_validation$MainWithValidations$SetEmail = function (a) {
 	return {ctor: 'SetEmail', _0: a};
 };
@@ -13962,83 +14054,50 @@ var _kirchner$form_validation$MainWithValidations$view = function (model) {
 								_0: A4(_kirchner$form_validation$MainWithValidations$viewInput, 'email', '* Email', _kirchner$form_validation$MainWithValidations$SetEmail, model.email),
 								_1: {
 									ctor: '::',
-									_0: A4(_kirchner$form_validation$MainWithValidations$viewInput, 'password', '* Password', _kirchner$form_validation$MainWithValidations$SetPassword, model.password),
+									_0: A4(
+										_kirchner$form_validation$MainWithValidations$viewInput,
+										'age',
+										'* Age',
+										_kirchner$form_validation$MainWithValidations$SetAge,
+										A2(_kirchner$form_validation$Validate$map, _elm_lang$core$Basics$toString, model.age)),
 									_1: {
 										ctor: '::',
-										_0: A4(_kirchner$form_validation$MainWithValidations$viewInput, 'password', '* Password again', _kirchner$form_validation$MainWithValidations$SetPasswordCopy, model.passwordCopy),
+										_0: A4(_kirchner$form_validation$MainWithValidations$viewInput, 'password', '* Password', _kirchner$form_validation$MainWithValidations$SetPassword, model.password),
 										_1: {
 											ctor: '::',
-											_0: A2(
-												_elm_lang$html$Html$div,
-												{
-													ctor: '::',
-													_0: _elm_lang$html$Html_Attributes$class('form-group'),
-													_1: {ctor: '[]'}
-												},
-												{
-													ctor: '::',
-													_0: A2(
-														_elm_lang$html$Html$div,
-														{
-															ctor: '::',
-															_0: _elm_lang$html$Html_Attributes$class('col-sm-offset-4'),
-															_1: {
+											_0: A4(_kirchner$form_validation$MainWithValidations$viewInput, 'password', '* Password again', _kirchner$form_validation$MainWithValidations$SetPasswordCopy, model.passwordCopy),
+											_1: {
+												ctor: '::',
+												_0: A2(
+													_elm_lang$html$Html$div,
+													{
+														ctor: '::',
+														_0: _elm_lang$html$Html_Attributes$class('form-group'),
+														_1: {ctor: '[]'}
+													},
+													{
+														ctor: '::',
+														_0: A2(
+															_elm_lang$html$Html$div,
+															{
 																ctor: '::',
-																_0: _elm_lang$html$Html_Attributes$class('col-sm-8'),
-																_1: {ctor: '[]'}
-															}
-														},
-														{
-															ctor: '::',
-															_0: A2(
-																_elm_lang$html$Html$div,
-																{
+																_0: _elm_lang$html$Html_Attributes$class('col-sm-offset-4'),
+																_1: {
 																	ctor: '::',
-																	_0: _elm_lang$html$Html_Attributes$class('row'),
+																	_0: _elm_lang$html$Html_Attributes$class('col-sm-8'),
 																	_1: {ctor: '[]'}
-																},
-																{
-																	ctor: '::',
-																	_0: A2(
-																		_elm_lang$html$Html$div,
-																		{
-																			ctor: '::',
-																			_0: _elm_lang$html$Html_Attributes$class('col-sm-6'),
-																			_1: {ctor: '[]'}
-																		},
-																		{
-																			ctor: '::',
-																			_0: A2(
-																				_elm_lang$html$Html$button,
-																				{
-																					ctor: '::',
-																					_0: _elm_lang$html$Html_Attributes$class('btn'),
-																					_1: {
-																						ctor: '::',
-																						_0: _elm_lang$html$Html_Attributes$class('btn-warning'),
-																						_1: {
-																							ctor: '::',
-																							_0: _elm_lang$html$Html_Attributes$class('btn-block'),
-																							_1: {
-																								ctor: '::',
-																								_0: A3(
-																									_elm_lang$html$Html_Events$onWithOptions,
-																									'click',
-																									{preventDefault: true, stopPropagation: false},
-																									_elm_lang$core$Json_Decode$succeed(_kirchner$form_validation$MainWithValidations$Reset)),
-																								_1: {ctor: '[]'}
-																							}
-																						}
-																					}
-																				},
-																				{
-																					ctor: '::',
-																					_0: _elm_lang$html$Html$text('Clear form'),
-																					_1: {ctor: '[]'}
-																				}),
-																			_1: {ctor: '[]'}
-																		}),
-																	_1: {
+																}
+															},
+															{
+																ctor: '::',
+																_0: A2(
+																	_elm_lang$html$Html$div,
+																	{
+																		ctor: '::',
+																		_0: _elm_lang$html$Html_Attributes$class('row'),
+																		_1: {ctor: '[]'}
+																	},
+																	{
 																		ctor: '::',
 																		_0: A2(
 																			_elm_lang$html$Html$div,
@@ -14056,7 +14115,7 @@ var _kirchner$form_validation$MainWithValidations$view = function (model) {
 																						_0: _elm_lang$html$Html_Attributes$class('btn'),
 																						_1: {
 																							ctor: '::',
-																							_0: _elm_lang$html$Html_Attributes$class('btn-primary'),
+																							_0: _elm_lang$html$Html_Attributes$class('btn-warning'),
 																							_1: {
 																								ctor: '::',
 																								_0: _elm_lang$html$Html_Attributes$class('btn-block'),
@@ -14066,34 +14125,76 @@ var _kirchner$form_validation$MainWithValidations$view = function (model) {
 																										_elm_lang$html$Html_Events$onWithOptions,
 																										'click',
 																										{preventDefault: true, stopPropagation: false},
-																										_elm_lang$core$Json_Decode$succeed(_kirchner$form_validation$MainWithValidations$SignUp)),
-																									_1: {
-																										ctor: '::',
-																										_0: _elm_lang$html$Html_Attributes$disabled(
-																											_elm_lang$core$Native_Utils.eq(
-																												_kirchner$form_validation$MainWithValidations$signUpParams(model),
-																												_elm_lang$core$Maybe$Nothing)),
-																										_1: {ctor: '[]'}
-																									}
+																										_elm_lang$core$Json_Decode$succeed(_kirchner$form_validation$MainWithValidations$Reset)),
+																									_1: {ctor: '[]'}
 																								}
 																							}
 																						}
 																					},
 																					{
 																						ctor: '::',
-																						_0: _elm_lang$html$Html$text('Sign up'),
+																						_0: _elm_lang$html$Html$text('Clear form'),
 																						_1: {ctor: '[]'}
 																					}),
 																				_1: {ctor: '[]'}
 																			}),
-																		_1: {ctor: '[]'}
-																	}
-																}),
-															_1: {ctor: '[]'}
-														}),
-													_1: {ctor: '[]'}
-												}),
-											_1: {ctor: '[]'}
+																		_1: {
+																			ctor: '::',
+																			_0: A2(
+																				_elm_lang$html$Html$div,
+																				{
+																					ctor: '::',
+																					_0: _elm_lang$html$Html_Attributes$class('col-sm-6'),
+																					_1: {ctor: '[]'}
+																				},
+																				{
+																					ctor: '::',
+																					_0: A2(
+																						_elm_lang$html$Html$button,
+																						{
+																							ctor: '::',
+																							_0: _elm_lang$html$Html_Attributes$class('btn'),
+																							_1: {
+																								ctor: '::',
+																								_0: _elm_lang$html$Html_Attributes$class('btn-primary'),
+																								_1: {
+																									ctor: '::',
+																									_0: _elm_lang$html$Html_Attributes$class('btn-block'),
+																									_1: {
+																										ctor: '::',
+																										_0: A3(
+																											_elm_lang$html$Html_Events$onWithOptions,
+																											'click',
+																											{preventDefault: true, stopPropagation: false},
+																											_elm_lang$core$Json_Decode$succeed(_kirchner$form_validation$MainWithValidations$SignUp)),
+																										_1: {
+																											ctor: '::',
+																											_0: _elm_lang$html$Html_Attributes$disabled(
+																												_elm_lang$core$Native_Utils.eq(
+																													_kirchner$form_validation$MainWithValidations$signUpParams(model),
+																													_elm_lang$core$Maybe$Nothing)),
+																											_1: {ctor: '[]'}
+																										}
+																									}
+																								}
+																							}
+																						},
+																						{
+																							ctor: '::',
+																							_0: _elm_lang$html$Html$text('Sign up'),
+																							_1: {ctor: '[]'}
+																						}),
+																					_1: {ctor: '[]'}
+																				}),
+																			_1: {ctor: '[]'}
+																		}
+																	}),
+																_1: {ctor: '[]'}
+															}),
+														_1: {ctor: '[]'}
+													}),
+												_1: {ctor: '[]'}
+											}
 										}
 									}
 								}
@@ -14117,7 +14218,7 @@ var _kirchner$form_validation$MainWithValidations$main = _elm_lang$html$Html$pro
 var Elm = {};
 Elm['MainWithValidations'] = Elm['MainWithValidations'] || {};
 if (typeof _kirchner$form_validation$MainWithValidations$main !== 'undefined') {
-    _kirchner$form_validation$MainWithValidations$main(Elm['MainWithValidations'], 'MainWithValidations', {"types":{"unions":{"Dict.LeafColor":{"args":[],"tags":{"LBBlack":[],"LBlack":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":["Dict.LeafColor"]}},"Set.Set":{"args":["t"],"tags":{"Set_elm_builtin":["Dict.Dict t ()"]}},"MainWithValidations.Msg":{"args":[],"tags":{"ValidateForm":[],"SignUp":[],"WelcomeMessage":["Result.Result Http.Error String"],"SetUsername":["String"],"AddUsernameValidationErrors":["Result.Result Http.Error (Set.Set String)"],"SetNickname":["String"],"SetPassword":["String"],"Reset":[],"SetPasswordCopy":["String"],"SetEmail":["String"]}},"Dict.NColor":{"args":[],"tags":{"BBlack":[],"Red":[],"NBlack":[],"Black":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String"],"NetworkError":[],"Timeout":[],"BadStatus":["Http.Response String"],"BadPayload":["String","Http.Response String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}}},"aliases":{"Http.Response":{"args":["body"],"type":"{ url : String , status : { code : Int, message : String } , headers : Dict.Dict String String , body : body }"}},"message":"MainWithValidations.Msg"},"versions":{"elm":"0.18.0"}});
+    _kirchner$form_validation$MainWithValidations$main(Elm['MainWithValidations'], 'MainWithValidations', {"types":{"unions":{"Dict.LeafColor":{"args":[],"tags":{"LBBlack":[],"LBlack":[]}},"Dict.Dict":{"args":["k","v"],"tags":{"RBNode_elm_builtin":["Dict.NColor","k","v","Dict.Dict k v","Dict.Dict k v"],"RBEmpty_elm_builtin":["Dict.LeafColor"]}},"Set.Set":{"args":["t"],"tags":{"Set_elm_builtin":["Dict.Dict t ()"]}},"MainWithValidations.Msg":{"args":[],"tags":{"ValidateForm":[],"SignUp":[],"SetAge":["String"],"WelcomeMessage":["Result.Result Http.Error String"],"SetUsername":["String"],"AddUsernameValidationErrors":["Result.Result Http.Error (Set.Set String)"],"SetNickname":["String"],"SetPassword":["String"],"Reset":[],"SetPasswordCopy":["String"],"SetEmail":["String"]}},"Dict.NColor":{"args":[],"tags":{"BBlack":[],"Red":[],"NBlack":[],"Black":[]}},"Http.Error":{"args":[],"tags":{"BadUrl":["String"],"NetworkError":[],"Timeout":[],"BadStatus":["Http.Response String"],"BadPayload":["String","Http.Response String"]}},"Result.Result":{"args":["error","value"],"tags":{"Ok":["value"],"Err":["error"]}}},"aliases":{"Http.Response":{"args":["body"],"type":"{ url : String , status : { code : Int, message : String } , headers : Dict.Dict String String , body : body }"}},"message":"MainWithValidations.Msg"},"versions":{"elm":"0.18.0"}});
 }
 
 if (typeof define === "function" && define['amd'])
