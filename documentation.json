@@ -1,0 +1,121 @@
+[
+  {
+    "name": "Validate",
+    "comment": " Suppose your application has a sign up form and you want to start\nvalidating the user input before sending the actual request to the\nserver.\n\n@docs Validatable\n\n@docs empty\n\n@docs unchecked\n\nNow, before you can actually use the values provided by the user, you\nhave to run validations on your model:\n\n    validateModel : Model -> Model\n    validateModel model =\n        let\n            password =\n                model.password\n                    |> isNotEmpty \"you must provide a password\"\n                    |> atLeast 6 \"the password must contain at least 6 characters\"\n        in\n        { model\n            | username =\n                model.username\n                    |> isNotEmpty \"username must not be empty\"\n                    |> consistsOfLetters \"username must consist of letters only\"\n            , email =\n                model.email\n                    |> isNotEmpty \"email must not be empty\"\n                    |> isEmail \"this is not a valid email address\"\n            , password =\n                password\n            , passwordCopy =\n                model.passwordCopy\n                    |> equals password \"both passwords have to match up\"\n        }\n\nHow you present the possible validation errors to the user is completely\nup to you. You can use `error` to extract all errors of a value if there\nare any.\n\nIn this example, the parameters we actually need to submit will be\n\n    type alias SignUpParams =\n        { username : String\n        , email : String\n        , password : String\n        }\n\nand we can extract a valid set of parameters with\n\n    signUpParams : Model -> Maybe SignUpParams\n    signUpParams model =\n        case\n            ( model.username |> validValue\n            , model.email |> validValue\n            , model.password |> validValue\n            , model.passwordCopy |> validValue\n            )\n        of\n            ( Just username, Just email, Just password, Just _ ) ->\n                Just\n                    { username = username\n                    , email = email\n                    , password = password\n                    }\n\n            _ ->\n                Nothing\n\n\n# Creating validatable values\n\n@docs empty, unchecked, uncheck, valid\n\n\n# Getting information\n\n@docs validValue, errors, rawValue\n\n\n# Simple String Validations\n\n@docs isNotEmpty, atLeast, consistsOfLetters, isEmail\n\n\n# Validations involving type casts\n\n@docs isInt, isFloat\n\n\n# Creating Validations\n\n@docs try, satisfies, equals, addErrors, map, maybe, with\n\n",
+    "aliases": [],
+    "types": [
+      {
+        "name": "Validatable",
+        "comment": " You have to wrap every value of your form inside this type. For\nexample, if your model looked something like\n\n    type alias FormerModel =\n        { username : String\n        , email : String\n        , password : String\n        , passwordCopy : String\n        }\n\nyou have to change it to\n\n    type alias Model =\n        { username : Validatable String String\n        , email : Validatable String String\n        , password : Validatable String String\n        , passwordCopy : Validatable String String\n        }\n\n",
+        "args": [
+          "a",
+          "comparable"
+        ],
+        "cases": []
+      }
+    ],
+    "values": [
+      {
+        "name": "addErrors",
+        "comment": " Add the given set of validation errors. This makes every value\nwhich is not empty invalid. You can use this function if you need to\nshow validations to the user which can only be performed on the server,\nfor example checking if a username is still available.\n\n**Note:** If the set is empty, we do not change the state of the value.\n\n",
+        "type": "Set.Set comparable -> Validate.Validatable a comparable -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "atLeast",
+        "comment": " Check if the string value is at least 6 characters long.\n",
+        "type": "Int -> comparable -> Validate.Validatable String comparable -> Validate.Validatable String comparable"
+      },
+      {
+        "name": "consistsOfLetters",
+        "comment": " Check if the string value only consists of letters.\n",
+        "type": "comparable -> Validate.Validatable String comparable -> Validate.Validatable String comparable"
+      },
+      {
+        "name": "empty",
+        "comment": " Use this to initialize your values:\n\n    init : Model\n    init =\n        { username = empty\n        , email = empty\n        , pasword = empty\n        , passwordCopy = empty\n        }\n\n",
+        "type": "Validate.Validatable a comparable"
+      },
+      {
+        "name": "equals",
+        "comment": " Given a reference value, check if the value equals it.\n",
+        "type": "a -> comparable -> Validate.Validatable a comparable -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "errors",
+        "comment": " Return all validation errors if the value has been tried to be\nvalidated at least once.\n",
+        "type": "Validate.Validatable a comparable -> Maybe.Maybe (Set.Set comparable)"
+      },
+      {
+        "name": "isEmail",
+        "comment": " Check if the string value is a proper email address.\n",
+        "type": "comparable -> Validate.Validatable String comparable -> Validate.Validatable String comparable"
+      },
+      {
+        "name": "isFloat",
+        "comment": " Try to cast a `String` to a `Float`.\n",
+        "type": "comparable -> String -> Validate.Validatable Float comparable"
+      },
+      {
+        "name": "isInt",
+        "comment": " Try to cast a `String` to an `Int`.\n",
+        "type": "comparable -> String -> Validate.Validatable Int comparable"
+      },
+      {
+        "name": "isNotEmpty",
+        "comment": " Check if the string value is non-empty. The first argument is the\nerror which is recorded if the value is empty.\n\n    (unchecked \"I am not empty!\"\n        |> isNotEmpty \"the value must not be empty\"\n        |> validValue\n    )\n        == Just \"I am not empty!\"\n\n    (unchecked \"\"\n        |> isNotEmpty \"the value must not be empty\"\n        |> errors\n        |> Maybe.map toList\n    )\n        == Just [ \"the value must not be empty\" ]\n\n",
+        "type": "comparable -> Validate.Validatable String comparable -> Validate.Validatable String comparable"
+      },
+      {
+        "name": "map",
+        "comment": " Apply the given function on the actual value.\n",
+        "type": "(a -> b) -> Validate.Validatable a comparable -> Validate.Validatable b comparable"
+      },
+      {
+        "name": "maybe",
+        "comment": " Apply the validator on maybe values. If the value is `Nothing`, it\nis left unchanged. This is usefull if you need to validate optional\narguments, for example\n\n    nickname : Validatable (Maybe String) String\n    nickname =\n        valid Nothing\n\n    (nickname\n        |> maybe (consistsOfLetters \"nickname must consist of letters only\")\n        |> validValue\n    )\n        == Just Nothing\n\n\n    invalidNickname : Validatable (Maybe String) String\n    invalidNickname =\n        unchecked (Just \"123\")\n\n    (invalidNickname\n        |> maybe (consistsOfLetters \"nickname must consist of letters only\")\n        |> errors\n        |> Set.toList\n    )\n        == Just [ \"nickname must consist of letters only\" ]\n\n",
+        "type": "(Validate.Validatable a comparable -> Validate.Validatable a comparable) -> Validate.Validatable (Maybe.Maybe a) comparable -> Validate.Validatable (Maybe.Maybe a) comparable"
+      },
+      {
+        "name": "rawValue",
+        "comment": " **I am not sure if it is a good idea to have this function at all,\nso it may be removed in the future.**\n\nReturn the value, no matter if it is valid or not.\n\n**Note:** If the value is in an invalid state, there may not be a raw\nvalue anymore.\n\n**Note:** Don't use this to extract the value for submitting the form.\nUse `validValue` instead, to ensure at compile time that you only submit\nvalid values.\n\n",
+        "type": "Validate.Validatable a comparable -> Maybe.Maybe a"
+      },
+      {
+        "name": "satisfies",
+        "comment": " Check if the value satisfies the condition. If not add the provided\nerror to the list of errors.\n\n**Note:** If the value was in an invalid state before and satisfies the\ncondition we drop the previous errors and return a valid value.\n\n",
+        "type": "(a -> Bool) -> comparable -> Validate.Validatable a comparable -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "try",
+        "comment": " Run the provided computation which might result in an error. If it\nsucceeds, we get a valid value, if it fails we get an invalid state with\nthe given errors. So, you can do something like this:\n\n    (\"not a number\"\n        |> try String.toInt (\\err -> \"You must provide an integer: \" ++ err)\n        |> errors\n        |> Maybe.map toList\n    )\n        == Just [ \"You must provide an integer: could not convert ...\" ]\n\n",
+        "type": "(a -> Result.Result err b) -> (err -> comparable) -> a -> Validate.Validatable b comparable"
+      },
+      {
+        "name": "uncheck",
+        "comment": " Set the value to unchecked if possible.\n",
+        "type": "Validate.Validatable a comparable -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "unchecked",
+        "comment": " Use this to update a value in your model in reaction to user input:\n\n    update : Msg -> Model -> Model\n    update msg model =\n        case msg of\n            SetUsername string ->\n                { model | username = unchecked string }\n\n            ...\n\n",
+        "type": "a -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "valid",
+        "comment": " Create a valid value. Usefull for initializing with a default\nvalue.\n",
+        "type": "a -> Validate.Validatable a comparable"
+      },
+      {
+        "name": "validValue",
+        "comment": " Return the actual value if it has been successfully validated at\nleast once.\n",
+        "type": "Validate.Validatable a comparable -> Maybe.Maybe a"
+      },
+      {
+        "name": "with",
+        "comment": " Apply a validation only if another value was successfully validated.\nThis unchecks the value if the provided value was not valid. For\nexample, you can do something like this\n\n    password : Validatable String String\n\n    passwordCopy : Validatable String String\n    passwordCopy =\n        oldPasswordCopy\n            |> Validate.with password\n                (\\validPassword ->\n                    Validate.equals validPassword \"Both passwords have to match up.\"\n                )\n\n",
+        "type": "Validate.Validatable a comparable -> (a -> Validate.Validatable b comparable -> Validate.Validatable b comparable) -> Validate.Validatable b comparable -> Validate.Validatable b comparable"
+      }
+    ],
+    "generated-with-elm-version": "0.18.0"
+  }
+]
