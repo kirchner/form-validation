@@ -12,6 +12,7 @@ module Validate
         , isInt
         , isNotEmpty
         , map
+        , mapErrors
         , maybe
         , rawValue
         , satisfies
@@ -116,7 +117,7 @@ and we can extract a valid set of parameters with
 
 # Creating Validations
 
-@docs try, satisfies, equals, addErrors, map, maybe, with
+@docs try, satisfies, equals, addErrors, map, mapErrors, maybe, with
 
 -}
 
@@ -470,6 +471,27 @@ map f value =
 
         Invalid maybeA errors ->
             Invalid (maybeA |> Maybe.map f) errors
+
+
+{-| Apply the given function on the error values.
+-}
+mapErrors :
+    (comparableA -> comparableB)
+    -> Validatable a comparableA
+    -> Validatable a comparableB
+mapErrors f value =
+    case value of
+        Empty ->
+            Empty
+
+        Unchecked a ->
+            Unchecked a
+
+        Valid a ->
+            Valid a
+
+        Invalid maybe errors ->
+            Invalid maybe (errors |> Set.map f)
 
 
 {-| Apply the validator on maybe values. If the value is `Nothing`, it
