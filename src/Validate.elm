@@ -139,18 +139,18 @@ example, if your model looked something like
 you have to change it to
 
     type alias Model =
-        { username : Validatable String String
-        , email : Validatable String String
-        , password : Validatable String String
-        , passwordCopy : Validatable String String
+        { username : Validatable String
+        , email : Validatable String
+        , password : Validatable String
+        , passwordCopy : Validatable String
         }
 
 -}
-type Validatable a comparable
+type Validatable a
     = Empty
     | Unchecked a
     | Valid a
-    | Invalid (Maybe a) (Set comparable)
+    | Invalid (Maybe a) (Set String)
 
 
 {-| Use this to initialize your values:
@@ -164,7 +164,7 @@ type Validatable a comparable
         }
 
 -}
-empty : Validatable a comparable
+empty : Validatable a
 empty =
     Empty
 
@@ -180,14 +180,14 @@ empty =
             ...
 
 -}
-unchecked : a -> Validatable a comparable
+unchecked : a -> Validatable a
 unchecked a =
     Unchecked a
 
 
 {-| Set the value to unchecked if possible.
 -}
-uncheck : Validatable a comparable -> Validatable a comparable
+uncheck : Validatable a -> Validatable a
 uncheck value =
     case value of
         Empty ->
@@ -212,7 +212,7 @@ uncheck value =
 {-| Create a valid value. Usefull for initializing with a default
 value.
 -}
-valid : a -> Validatable a comparable
+valid : a -> Validatable a
 valid a =
     Valid a
 
@@ -220,7 +220,7 @@ valid a =
 {-| Return the actual value if it has been successfully validated at
 least once.
 -}
-validValue : Validatable a comparable -> Maybe a
+validValue : Validatable a -> Maybe a
 validValue value =
     case value of
         Empty ->
@@ -239,7 +239,7 @@ validValue value =
 {-| Return all validation errors if the value has been tried to be
 validated at least once.
 -}
-errors : Validatable a comparable -> Maybe (Set comparable)
+errors : Validatable a -> Maybe (Set String)
 errors value =
     case value of
         Empty ->
@@ -268,7 +268,7 @@ Use `validValue` instead, to ensure at compile time that you only submit
 valid values.
 
 -}
-rawValue : Validatable a comparable -> Maybe a
+rawValue : Validatable a -> Maybe a
 rawValue value =
     case value of
         Empty ->
@@ -301,21 +301,21 @@ error which is recorded if the value is empty.
         == Just [ "the value must not be empty" ]
 
 -}
-isNotEmpty : comparable -> Validatable String comparable -> Validatable String comparable
+isNotEmpty : String -> Validatable String -> Validatable String
 isNotEmpty error value =
     value |> satisfies (not << String.isEmpty) error
 
 
 {-| Check if the string value is at least 6 characters long.
 -}
-atLeast : Int -> comparable -> Validatable String comparable -> Validatable String comparable
+atLeast : Int -> String -> Validatable String -> Validatable String
 atLeast minimalLength error value =
     value |> satisfies (\string -> minimalLength <= String.length string) error
 
 
 {-| Check if the string value only consists of letters.
 -}
-consistsOfLetters : comparable -> Validatable String comparable -> Validatable String comparable
+consistsOfLetters : String -> Validatable String -> Validatable String
 consistsOfLetters error value =
     let
         onlyLetters string =
@@ -329,7 +329,7 @@ consistsOfLetters error value =
 
 {-| Check if the string value is a proper email address.
 -}
-isEmail : comparable -> Validatable String comparable -> Validatable String comparable
+isEmail : String -> Validatable String -> Validatable String
 isEmail error value =
     let
         validEmail string =
@@ -344,7 +344,7 @@ isEmail error value =
 
 {-| Try to cast a `String` to an `Int`.
 -}
-isInt : comparable -> String -> Validatable Int comparable
+isInt : String -> String -> Validatable Int
 isInt error input =
     input
         |> try String.toInt (\_ -> error)
@@ -352,7 +352,7 @@ isInt error input =
 
 {-| Try to cast a `String` to a `Float`.
 -}
-isFloat : comparable -> String -> Validatable Float comparable
+isFloat : String -> String -> Validatable Float
 isFloat error input =
     input
         |> try String.toFloat (\_ -> error)
@@ -370,7 +370,7 @@ the given errors. So, you can do something like this:
         == Just [ "You must provide an integer: could not convert ..." ]
 
 -}
-try : (a -> Result err b) -> (err -> comparable) -> a -> Validatable b comparable
+try : (a -> Result err b) -> (err -> String) -> a -> Validatable b
 try cast error value =
     case cast value of
         Err err ->
@@ -387,7 +387,7 @@ error to the list of errors.
 condition we drop the previous errors and return a valid value.
 
 -}
-satisfies : (a -> Bool) -> comparable -> Validatable a comparable -> Validatable a comparable
+satisfies : (a -> Bool) -> String -> Validatable a -> Validatable a
 satisfies condition error value =
     case value of
         Empty ->
@@ -421,9 +421,9 @@ satisfies condition error value =
 -}
 equals :
     a
-    -> comparable
-    -> Validatable a comparable
-    -> Validatable a comparable
+    -> String
+    -> Validatable a
+    -> Validatable a
 equals reference error value =
     value |> satisfies ((==) reference) error
 
@@ -436,7 +436,7 @@ for example checking if a username is still available.
 **Note:** If the set is empty, we do not change the state of the value.
 
 -}
-addErrors : Set comparable -> Validatable a comparable -> Validatable a comparable
+addErrors : Set String -> Validatable a -> Validatable a
 addErrors validationErrors value =
     if validationErrors |> Set.isEmpty then
         value
@@ -457,7 +457,7 @@ addErrors validationErrors value =
 
 {-| Apply the given function on the actual value.
 -}
-map : (a -> b) -> Validatable a comparable -> Validatable b comparable
+map : (a -> b) -> Validatable a -> Validatable b
 map f value =
     case value of
         Empty ->
@@ -476,9 +476,9 @@ map f value =
 {-| Apply the given function on the error values.
 -}
 mapErrors :
-    (comparableA -> comparableB)
-    -> Validatable a comparableA
-    -> Validatable a comparableB
+    (String -> String)
+    -> Validatable a
+    -> Validatable a
 mapErrors f value =
     case value of
         Empty ->
@@ -522,9 +522,9 @@ arguments, for example
 
 -}
 maybe :
-    (Validatable a comparable -> Validatable a comparable)
-    -> Validatable (Maybe a) comparable
-    -> Validatable (Maybe a) comparable
+    (Validatable a -> Validatable a)
+    -> Validatable (Maybe a)
+    -> Validatable (Maybe a)
 maybe validator maybeValue =
     case maybeValue of
         Unchecked (Just a) ->
@@ -562,10 +562,10 @@ example, you can do something like this
 
 -}
 with :
-    Validatable a comparable
-    -> (a -> Validatable b comparable -> Validatable b comparable)
-    -> Validatable b comparable
-    -> Validatable b comparable
+    Validatable a
+    -> (a -> Validatable b -> Validatable b)
+    -> Validatable b
+    -> Validatable b
 with reference validator value =
     case reference of
         Empty ->
