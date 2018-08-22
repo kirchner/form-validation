@@ -1,5 +1,6 @@
 module MainWithValidations exposing (main)
 
+import Browser exposing (Document)
 import Char
 import Html exposing (Html)
 import Html.Attributes as Attributes
@@ -11,9 +12,9 @@ import Set exposing (Set)
 import Validate
 
 
-main : Program Never Model Msg
+main : Program {} Model Msg
 main =
-    Html.program
+    Browser.document
         { init = init
         , update = update
         , subscriptions = \_ -> Sub.none
@@ -39,17 +40,22 @@ type alias Validatable a =
     Validate.Validatable a String
 
 
-init : ( Model, Cmd msg )
-init =
-    ( { username = Validate.empty
-      , nickname = Validate.valid Nothing
-      , email = Validate.empty
-      , age = Validate.empty
-      , password = Validate.empty
-      , passwordCopy = Validate.empty
-      }
+init : {} -> ( Model, Cmd msg )
+init _ =
+    ( initialModel
     , Cmd.none
     )
+
+
+initialModel : Model
+initialModel =
+    { username = Validate.empty
+    , nickname = Validate.valid Nothing
+    , email = Validate.empty
+    , age = Validate.empty
+    , password = Validate.empty
+    , passwordCopy = Validate.empty
+    }
 
 
 validateModel : Model -> ( Model, Cmd Msg )
@@ -89,16 +95,16 @@ validateModel model =
         Nothing ->
             Cmd.none
 
-        Just username ->
-            validateUsername username
+        Just validUsername ->
+            validateUsernameViaBackend validUsername
     )
 
 
-validateUsername : String -> Cmd Msg
-validateUsername username =
+validateUsernameViaBackend : String -> Cmd Msg
+validateUsernameViaBackend username =
     let
         body =
-            [ "username" => Encode.string username ]
+            [ ( "username", Encode.string username ) ]
                 |> Encode.object
                 |> Http.jsonBody
     in
@@ -127,24 +133,25 @@ type alias SignUpParams =
 
 signUpParams : Model -> Maybe SignUpParams
 signUpParams model =
-    case
-        ( model.username |> Validate.validValue
-        , model.nickname |> Validate.validValue
-        , model.email |> Validate.validValue
-        , model.password |> Validate.validValue
-        , model.passwordCopy |> Validate.validValue
-        )
-    of
-        ( Just username, Just nickname, Just email, Just password, Just _ ) ->
-            Just
-                { username = username
-                , nickname = nickname
-                , email = email
-                , password = password
-                }
+    if Validate.validValue model.passwordCopy == Nothing then
+        Nothing
+    else
+        Just SignUpParams
+            |> collect model.username
+            |> collect model.nickname
+            |> collect model.email
+            |> collect model.password
 
-        _ ->
-            Nothing
+
+collect : Validatable a -> Maybe (a -> rest) -> Maybe rest
+collect validatable maybeCollector =
+    Maybe.map2 apply maybeCollector <|
+        Validate.validValue validatable
+
+
+apply : (a -> b) -> a -> b
+apply f a =
+    f a
 
 
 
@@ -228,7 +235,9 @@ update msg model =
                     )
 
         Reset ->
-            init
+            ( initialModel
+            , Cmd.none
+            )
 
         SignUp ->
             ( model
@@ -238,20 +247,11 @@ update msg model =
         WelcomeMessage result ->
             case result of
                 Err error ->
-                    let
-                        _ =
-                            Debug.log "something went wrong"
-                                error
-                    in
                     ( model
                     , Cmd.none
                     )
 
                 Ok message ->
-                    let
-                        _ =
-                            Debug.log "message" message
-                    in
                     ( model
                     , Cmd.none
                     )
@@ -263,14 +263,14 @@ signUp model =
         Just { username, nickname, email, password } ->
             let
                 body =
-                    [ Just ("username" => Encode.string username)
+                    [ Just ( "username", Encode.string username )
                     , nickname
                         |> Maybe.map
-                            (\nickname ->
-                                "nickname" => Encode.string nickname
+                            (\actualNickname ->
+                                ( "nickname", Encode.string actualNickname )
                             )
-                    , Just ("email" => Encode.string email)
-                    , Just ("password" => Encode.string password)
+                    , Just ( "email", Encode.string email )
+                    , Just ( "password", Encode.string password )
                     ]
                         |> List.filterMap identity
                         |> Encode.object
@@ -293,73 +293,71 @@ decodeSignUpResponse =
 ---- VIEW
 
 
-view : Model -> Html Msg
+view : Model -> Document Msg
 view model =
-    Html.div
-        [ Attributes.class "container" ]
-        [ Html.form
-            [ Attributes.class "form-horizontal"
-            , Attributes.class "col-sm-offset-2"
-            , Attributes.class "col-sm-8"
-            ]
-            [ Html.h1
-                [ Attributes.class "text-center" ]
-                [ Html.text "Join our service!" ]
-            , viewInput "text" "* Username" SetUsername model.username
-            , viewInput "text"
-                "Nickname"
-                SetNickname
-                (model.nickname
-                    |> Validate.map (Maybe.withDefault "")
-                )
-            , viewInput "email" "* Email" SetEmail model.email
-            , model.age
-                |> Validate.map toString
-                |> viewInput "age" "* Age" SetAge
-            , viewInput "password" "* Password" SetPassword model.password
-            , viewInput "password" "* Password again" SetPasswordCopy model.passwordCopy
-            , Html.div
-                [ Attributes.class "form-group" ]
-                [ Html.div
-                    [ Attributes.class "col-sm-offset-4"
-                    , Attributes.class "col-sm-8"
-                    ]
+    { title = "elm-form-validation demo"
+    , body =
+        [ Html.div
+            [ Attributes.class "container" ]
+            [ Html.form
+                [ Attributes.class "form-horizontal"
+                , Attributes.class "col-sm-offset-2"
+                , Attributes.class "col-sm-8"
+                ]
+                [ Html.h1
+                    [ Attributes.class "text-center" ]
+                    [ Html.text "Join our service!" ]
+                , viewInput "text" "* Username" SetUsername model.username
+                , viewInput "text"
+                    "Nickname"
+                    SetNickname
+                    (model.nickname
+                        |> Validate.map (Maybe.withDefault "")
+                    )
+                , viewInput "email" "* Email" SetEmail model.email
+                , model.age
+                    |> Validate.map String.fromInt
+                    |> viewInput "age" "* Age" SetAge
+                , viewInput "password" "* Password" SetPassword model.password
+                , viewInput "password" "* Password again" SetPasswordCopy model.passwordCopy
+                , Html.div
+                    [ Attributes.class "form-group" ]
                     [ Html.div
-                        [ Attributes.class "row" ]
+                        [ Attributes.class "col-sm-offset-4"
+                        , Attributes.class "col-sm-8"
+                        ]
                         [ Html.div
-                            [ Attributes.class "col-sm-6" ]
-                            [ Html.button
-                                [ Attributes.class "btn"
-                                , Attributes.class "btn-warning"
-                                , Attributes.class "btn-block"
-                                , Events.onWithOptions "click"
-                                    { preventDefault = True
-                                    , stopPropagation = False
-                                    }
-                                    (Decode.succeed Reset)
+                            [ Attributes.class "row" ]
+                            [ Html.div
+                                [ Attributes.class "col-sm-6" ]
+                                [ Html.button
+                                    [ Attributes.class "btn"
+                                    , Attributes.class "btn-warning"
+                                    , Attributes.class "btn-block"
+                                    , Events.preventDefaultOn "click"
+                                        (Decode.succeed ( Reset, True ))
+                                    ]
+                                    [ Html.text "Clear form" ]
                                 ]
-                                [ Html.text "Clear form" ]
-                            ]
-                        , Html.div
-                            [ Attributes.class "col-sm-6" ]
-                            [ Html.button
-                                [ Attributes.class "btn"
-                                , Attributes.class "btn-primary"
-                                , Attributes.class "btn-block"
-                                , Events.onWithOptions "click"
-                                    { preventDefault = True
-                                    , stopPropagation = False
-                                    }
-                                    (Decode.succeed SignUp)
-                                , Attributes.disabled (signUpParams model == Nothing)
+                            , Html.div
+                                [ Attributes.class "col-sm-6" ]
+                                [ Html.button
+                                    [ Attributes.class "btn"
+                                    , Attributes.class "btn-primary"
+                                    , Attributes.class "btn-block"
+                                    , Events.preventDefaultOn "click"
+                                        (Decode.succeed ( SignUp, True ))
+                                    , Attributes.disabled (signUpParams model == Nothing)
+                                    ]
+                                    [ Html.text "Sign up" ]
                                 ]
-                                [ Html.text "Sign up" ]
                             ]
                         ]
                     ]
                 ]
             ]
         ]
+    }
 
 
 viewInput : String -> String -> (String -> Msg) -> Validatable String -> Html Msg
@@ -424,12 +422,3 @@ viewInput type_ label onInput value =
              ]
                 |> List.concat
             )
-
-
-
----- HELPER
-
-
-(=>) : a -> b -> ( a, b )
-(=>) =
-    (,)

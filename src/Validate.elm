@@ -30,10 +30,6 @@ server.
 
 @docs Validatable
 
-@docs empty
-
-@docs unchecked
-
 Now, before you can actually use the values provided by the user, you
 have to run validations on your model:
 
@@ -118,6 +114,24 @@ and we can extract a valid set of parameters with
 # Creating Validations
 
 @docs try, satisfies, equals, addErrors, map, mapErrors, maybe, with
+
+-}
+
+{-
+
+   Copyright 2018 Fabian Kirchner
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
 
 -}
 
@@ -251,8 +265,8 @@ errors value =
         Valid _ ->
             Nothing
 
-        Invalid _ errors ->
-            Just errors
+        Invalid _ errorsSet ->
+            Just errorsSet
 
 
 {-| **I am not sure if it is a good idea to have this function at all,
@@ -331,15 +345,21 @@ consistsOfLetters error value =
 -}
 isEmail : comparable -> Validatable String comparable -> Validatable String comparable
 isEmail error value =
-    let
-        validEmail string =
-            string |> Regex.contains emailRegex
+    value
+        |> satisfies (Regex.contains emailRegex) error
 
-        emailRegex =
-            Regex.regex "^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-                |> Regex.caseInsensitive
-    in
-    value |> satisfies validEmail error
+
+emailRegex : Regex.Regex
+emailRegex =
+    Maybe.withDefault Regex.never <|
+        Regex.fromStringWith
+            { caseInsensitive = True
+            , multiline = False
+            }
+            ("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9]"
+                ++ "(?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+                ++ "(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+            )
 
 
 {-| Try to cast a `String` to an `Int`.
@@ -347,7 +367,7 @@ isEmail error value =
 isInt : comparable -> String -> Validatable Int comparable
 isInt error input =
     input
-        |> try String.toInt (\_ -> error)
+        |> try (String.toInt >> Result.fromMaybe ()) (\_ -> error)
 
 
 {-| Try to cast a `String` to a `Float`.
@@ -355,7 +375,7 @@ isInt error input =
 isFloat : comparable -> String -> Validatable Float comparable
 isFloat error input =
     input
-        |> try String.toFloat (\_ -> error)
+        |> try (String.toFloat >> Result.fromMaybe ()) (\_ -> error)
 
 
 {-| Run the provided computation which might result in an error. If it
@@ -469,8 +489,8 @@ map f value =
         Valid a ->
             Valid (f a)
 
-        Invalid maybeA errors ->
-            Invalid (maybeA |> Maybe.map f) errors
+        Invalid maybeA errorsSet ->
+            Invalid (maybeA |> Maybe.map f) errorsSet
 
 
 {-| Apply the given function on the error values.
@@ -490,8 +510,8 @@ mapErrors f value =
         Valid a ->
             Valid a
 
-        Invalid maybe errors ->
-            Invalid maybe (errors |> Set.map f)
+        Invalid maybeA errorsSet ->
+            Invalid maybeA (errorsSet |> Set.map f)
 
 
 {-| Apply the validator on maybe values. If the value is `Nothing`, it
@@ -537,8 +557,8 @@ maybe validator maybeValue =
                 |> validator
                 |> map Just
 
-        Invalid (Just a) errors ->
-            Invalid a errors
+        Invalid (Just a) errorsSet ->
+            Invalid a errorsSet
                 |> validator
                 |> map Just
 

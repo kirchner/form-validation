@@ -1,0 +1,16 @@
+{
+    "type": "package",
+    "name": "kirchner/elm-form-validation",
+    "summary": "Create validatable forms",
+    "license": "Apache-2.0",
+    "version": "1.0.0",
+    "exposed-modules": [
+        "Validate"
+    ],
+    "elm-version": "0.19.0 <= v < 0.20.0",
+    "dependencies": {
+        "elm/core": "1.0.0 <= v < 2.0.0",
+        "elm/regex": "1.0.0 <= v < 2.0.0"
+    },
+    "test-dependencies": {}
+}
