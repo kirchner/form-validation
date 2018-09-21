@@ -24,74 +24,12 @@ module Validate
         , with
         )
 
-{-| Suppose your application has a sign up form and you want to start
-validating the user input before sending the actual request to the
-server.
-
-@docs Validatable
-
-Now, before you can actually use the values provided by the user, you
-have to run validations on your model:
-
-    validateModel : Model -> Model
-    validateModel model =
-        let
-            password =
-                model.password
-                    |> isNotEmpty "you must provide a password"
-                    |> atLeast 6 "the password must contain at least 6 characters"
-        in
-        { model
-            | username =
-                model.username
-                    |> isNotEmpty "username must not be empty"
-                    |> consistsOfLetters "username must consist of letters only"
-            , email =
-                model.email
-                    |> isNotEmpty "email must not be empty"
-                    |> isEmail "this is not a valid email address"
-            , password =
-                password
-            , passwordCopy =
-                model.passwordCopy
-                    |> equals password "both passwords have to match up"
-        }
-
-How you present the possible validation errors to the user is completely
-up to you. You can use `error` to extract all errors of a value if there
-are any.
-
-In this example, the parameters we actually need to submit will be
-
-    type alias SignUpParams =
-        { username : String
-        , email : String
-        , password : String
-        }
-
-and we can extract a valid set of parameters with
-
-    signUpParams : Model -> Maybe SignUpParams
-    signUpParams model =
-        case
-            ( model.username |> validValue
-            , model.email |> validValue
-            , model.password |> validValue
-            , model.passwordCopy |> validValue
-            )
-        of
-            ( Just username, Just email, Just password, Just _ ) ->
-                Just
-                    { username = username
-                    , email = email
-                    , password = password
-                    }
-
-            _ ->
-                Nothing
+{-|
 
 
 # Creating validatable values
+
+@docs Validatable
 
 @docs empty, unchecked, uncheck, valid
 
@@ -101,7 +39,7 @@ and we can extract a valid set of parameters with
 @docs validValue, errors, rawValue
 
 
-# Simple String Validations
+# Simple string validations
 
 @docs isNotEmpty, atLeast, consistsOfLetters, isEmail
 
@@ -111,7 +49,7 @@ and we can extract a valid set of parameters with
 @docs isInt, isFloat
 
 
-# Creating Validations
+# Creating custom validations
 
 @docs try, satisfies, equals, addErrors, map, mapErrors, maybe, with
 
@@ -320,7 +258,7 @@ isNotEmpty error value =
     value |> satisfies (not << String.isEmpty) error
 
 
-{-| Check if the string value is at least 6 characters long.
+{-| Check if the string value is at least the given count of characters long.
 -}
 atLeast : Int -> comparable -> Validatable String comparable -> Validatable String comparable
 atLeast minimalLength error value =
